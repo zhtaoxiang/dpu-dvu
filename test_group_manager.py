@@ -1,4 +1,4 @@
-import os, time
+import os, time, sys
 from pyndn import Name, Face, Data, Interest, Exclude
 from pyndn.threadsafe_face import ThreadsafeFace
 from pyndn.util import Blob, MemoryContentCache
@@ -12,9 +12,12 @@ from pyndn.security.policy import NoVerifyPolicyManager
 
 import trollius as asyncio
 from pyndn.encoding import ProtobufTlv
+import getopt
 
 import producer.repo_command_parameter_pb2 as repo_command_parameter_pb2
 import producer.repo_command_response_pb2 as repo_command_response_pb2
+
+import datetime
 
 DATA_CONTENT = bytearray([
     0xcb, 0xe5, 0x6a, 0x80, 0x41, 0x24, 0x58, 0x23,
@@ -24,7 +27,7 @@ DATA_CONTENT = bytearray([
 ])
 
 class TestGroupManager(object):
-    def __init__(self, face, groupManagerName, dataType, readAccessName, dKeyDatabaseFilePath):
+    def __init__(self, face, groupManagerName, dataType, readAccessName, dKeyDatabaseFilePath, managerStartDate, managerEndDate):
         # Set up face
         self.face = face
         #self.loop = eventLoop
@@ -57,6 +60,9 @@ class TestGroupManager(object):
         self.face.registerPrefix(readAccessName, self.onAccessInterest, self.onAccessTimeout)
 
         self.updateGroupKeys = False
+
+        self.managerStartDate = managerStartDate
+        self.managerEndDate = managerEndDate
         return
 
     def onAccessInterest(self, prefix, interest, face, interestFilterId, filter):
@@ -87,8 +93,8 @@ class TestGroupManager(object):
     def setManager(self):
         schedule1 = Schedule()
         interval11 = RepetitiveInterval(
-          Schedule.fromIsoString("20160620T080000"),
-          Schedule.fromIsoString("20160620T080000"), 8, 10, 1,
+          Schedule.fromIsoString(self.managerStartDate),
+          Schedule.fromIsoString(self.managerEndDate), 0, 24, 1,
           RepetitiveInterval.RepeatUnit.DAY)
         schedule1.addWhiteInterval(interval11)
         
@@ -112,8 +118,8 @@ class TestGroupManager(object):
           lambda memberInterest: self.onMemberCertificateTimeout(memberInterest, accessInterest))
         return
 
-    def publishGroupKeys(self):
-        timePoint1 = Schedule.fromIsoString("20160620T083000")
+    def publishGroupKeys(self, timeStr):
+        timePoint1 = Schedule.fromIsoString(timeStr)
         result = self.manager.getGroupKey(timePoint1)
 
         # The first is group public key, E-key
@@ -150,25 +156,68 @@ class TestGroupManager(object):
 
         self.face.expressInterest(interest, self.onRepoData, self.onRepoTimeout)
 
+def usage():
+    print "Options: --start= (manager start date, like 20160620T080000) --end= (manager end date, like 20160620T080000)"
+    print "--key-period= (generate keys for one period, like 20160620T083000)"
+    print "--prefix= (prefix which this group manager uses, like /org/openmhealth/zhehao/)"
+    print "By default we use utc now in whole hour as manager start time, one day later as end time, and utc now in whole hour to get group keys"
+
 if __name__ == "__main__":
     print "Start NAC group manager test"
+    utcNow = datetime.datetime.utcnow()
+    utcNowStr = utcNow.strftime('%Y%m%dT%H%M%S')
+    print "Current time in UTC: " + utcNowStr
+    utcNowWholeHour = utcNow.strftime('%Y%m%dT%H0000')
+    print "Current time in UTC (whole hour): " + utcNowWholeHour
+
+    utcOneDayLater = utcNow + datetime.timedelta(days = 1)
+    utcNowOneDayLater = utcOneDayLater.strftime('%Y%m%dT%H0000')
+    print "Current time in UTC (whole hour one day later): " + utcNowOneDayLater
+
+    startDate = utcNowWholeHour
+    endDate = utcNowOneDayLater
+    defaultKeyPeriod = utcNowWholeHour
+    defaultPrefix = "/org/openmhealth/zhehao/"
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "", ["help", "start=", "end=", "key-period=", "prefix="])
+    except getopt.GetoptError as err:
+        print err
+        usage()
+        sys.exit(2)
+
+    for o, a in opts:
+        if o == '--help':
+            usage()
+            sys.exit(0)
+        elif o == '--start':
+            startDate = a
+        elif o == '--end':
+            endDate = a
+        elif o == '--key-period':
+            defaultKeyPeriod = a
+        elif o == '--prefix':
+            defaultPrefix = a
+        else:
+            print("unhandled option")
+
     #loop = asyncio.get_event_loop()
     face = Face()
 
-    groupManagerName = Name("/org/openmhealth/zhehao/")
-    readAccessName = Name("/org/openmhealth/zhehao/read_access_request")
+    groupManagerName = Name(defaultPrefix)
+    readAccessName = Name(defaultPrefix).append("read_access_request")
     dataType = Name("fitness")
 
-    testGroupManager = TestGroupManager(face, groupManagerName, dataType, readAccessName, "policy_config/manager-d-key-test.db")
+    testGroupManager = TestGroupManager(face, groupManagerName, dataType, readAccessName, "policy_config/manager-d-key-test.db", startDate, endDate)
     testGroupManager.setManager()
 
-    testGroupManager.publishGroupKeys()
+    testGroupManager.publishGroupKeys(defaultKeyPeriod)
     
     while True:
         face.processEvents()
 
         if testGroupManager.updateGroupKeys:
-            testGroupManager.publishGroupKeys()
+            testGroupManager.publishGroupKeys(defaultKeyPeriod)
 
         # We need to sleep for a few milliseconds so we don't use 100% of the CPU.
         time.sleep(0.01)

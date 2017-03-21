@@ -235,7 +235,6 @@ function getEncryptedData(catalogs) {
     for (catalog in catalogs[username]) {
       for (dataItem in catalogs[username][catalog].content) {
         var isoTimeString = Schedule.toIsoString(catalogs[username][catalog].content[dataItem] * 1000);
-        var isoTimeString = Schedule.toIsoString(catalogs[username][catalog].content[dataItem] * 1000);
         nacConsumer.consume(new Name(name).append(isoTimeString), onConsumeComplete, onConsumeFailed);
         logString("<b>Interest</b>: " + (new Name(name).append(isoTimeString)).toUri() + " <br>");
       }
@@ -379,8 +378,8 @@ function issueDPUInterest(username) {
   if (username == undefined) {
     username = Config.defaultUsername;
   }
-
-  var parameters = Name.fromEscapedString("/org/openmhealth/zhehao,20160320T080,/org/openmhealth/zhehao/SAMPLE/fitness/physical_activity/processed_result/bounding_box/20160320T080000");
+  
+  var parameters = Name.fromEscapedString(document.getElementById('dpu-param').value);
   console.log(parameters);
   var name = new Name(DPUPrefix).append(parameters);
   // DistanceTo
