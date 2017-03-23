@@ -48,7 +48,8 @@ class TestDPU(object):
         #   For some reason this newly generated cert is not installed by default, calling keyChain sign later would result in error
         #self.keyChain.installIdentityCertificate()
         
-        self.face.setCommandSigningInfo(self.keyChain, self.certificateName)
+        print "Default certificate name is: " + self.keyChain.getDefaultCertificateName()
+        self.face.setCommandSigningInfo(self.keyChain, self.keyChain.getDefaultCertificateName())
 
         consumerKeyName = IdentityCertificate.certificateNameToPublicKeyName(self.certificateName)
         consumerCertificate = identityStorage.getCertificate(self.certificateName)
