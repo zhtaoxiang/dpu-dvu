@@ -92,11 +92,13 @@ class TestGroupManager(object):
 
     def setManager(self):
         schedule1 = Schedule()
-        interval11 = RepetitiveInterval(
-          Schedule.fromIsoString(self.managerStartDate),
-          Schedule.fromIsoString(self.managerEndDate), 0, 24, 1,
-          RepetitiveInterval.RepeatUnit.DAY)
-        schedule1.addWhiteInterval(interval11)
+        # by default add whole day hourly intervals
+        for i in xrange(0, 24):
+            interval11 = RepetitiveInterval(
+              Schedule.fromIsoString(self.managerStartDate),
+              Schedule.fromIsoString(self.managerEndDate), i, i + 1, 1,
+              RepetitiveInterval.RepeatUnit.DAY)
+            schedule1.addWhiteInterval(interval11)
         
         self.manager.addSchedule("schedule1", schedule1)
 
