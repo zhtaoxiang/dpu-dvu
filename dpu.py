@@ -51,8 +51,9 @@ class TestDPU(object):
         self.memoryContentCache = MemoryContentCache(self.face)
 
         try:
+            commandSigningKeyChain = KeyChain()
             print "Default certificate name is: " + self.keyChain.getDefaultCertificateName().toUri()
-            self.face.setCommandSigningInfo(self.keyChain, self.keyChain.getDefaultCertificateName())
+            self.face.setCommandSigningInfo(commandSigningKeyChain, commandSigningKeyChain.getDefaultCertificateName())
             self.memoryContentCache.registerPrefix(identityName, self.onRegisterFailed, self.onDataNotFound)
         except SecurityException as e:
             print str(e)
