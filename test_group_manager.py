@@ -41,7 +41,8 @@ class TestGroupManager(object):
 
         self.certificateName = self.keyChain.createIdentityAndCertificate(groupManagerName)
 
-        self.face.setCommandSigningInfo(self.keyChain, self.certificateName)
+        commandSigningKeyChain = KeyChain()
+        self.face.setCommandSigningInfo(commandSigningKeyChain, commandSigningKeyChain.getDefaultCertificateName())
 
         self.dKeyDatabaseFilePath = dKeyDatabaseFilePath
         try:
@@ -56,6 +57,7 @@ class TestGroupManager(object):
           self.keyChain)
 
         self.memoryContentCache = MemoryContentCache(self.face)
+
         self.memoryContentCache.registerPrefix(groupManagerName, self.onRegisterFailed, self.onDataNotFound)
         self.face.registerPrefix(readAccessName, self.onAccessInterest, self.onAccessTimeout)
 
