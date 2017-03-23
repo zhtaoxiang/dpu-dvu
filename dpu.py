@@ -4,7 +4,7 @@ from pyndn import Name, Data, Face, Interest, Link
 from pyndn.util import Blob, MemoryContentCache
 from pyndn.encrypt import Schedule, Consumer, Sqlite3ConsumerDb, EncryptedContent
 
-from pyndn.security import KeyType, KeyChain, RsaKeyParams
+from pyndn.security import KeyType, KeyChain, RsaKeyParams, SecurityException
 from pyndn.security.certificate import IdentityCertificate
 from pyndn.security.identity import IdentityManager
 from pyndn.security.identity import BasicIdentityStorage, FilePrivateKeyStorage, MemoryIdentityStorage, MemoryPrivateKeyStorage
@@ -48,8 +48,17 @@ class TestDPU(object):
         #   For some reason this newly generated cert is not installed by default, calling keyChain sign later would result in error
         #self.keyChain.installIdentityCertificate()
         
-        print "Default certificate name is: " + self.keyChain.getDefaultCertificateName()
-        self.face.setCommandSigningInfo(self.keyChain, self.keyChain.getDefaultCertificateName())
+        self.memoryContentCache = MemoryContentCache(self.face)
+
+        try:
+            print "Default certificate name is: " + self.keyChain.getDefaultCertificateName().toUri()
+            self.face.setCommandSigningInfo(self.keyChain, self.keyChain.getDefaultCertificateName())
+            self.memoryContentCache.registerPrefix(identityName, self.onRegisterFailed, self.onDataNotFound)
+        except SecurityException as e:
+            print str(e)
+            print "Cannot use default certificate, use created certificate in FilePrivateKeyStorage"
+            self.face.setCommandSigningInfo(self.keyChain, self.certificateName)
+            self.memoryContentCache.registerPrefix(identityName, self.onRegisterFailed, self.onDataNotFound)
 
         consumerKeyName = IdentityCertificate.certificateNameToPublicKeyName(self.certificateName)
         consumerCertificate = identityStorage.getCertificate(self.certificateName)
@@ -65,9 +74,6 @@ class TestDPU(object):
             #print base64Content
         der = Blob(base64.b64decode(base64Content), False)
         self.consumer.addDecryptionKey(consumerKeyName, der)
-
-        self.memoryContentCache = MemoryContentCache(self.face)
-        self.memoryContentCache.registerPrefix(identityName, self.onRegisterFailed, self.onDataNotFound)
         self.memoryContentCache.add(consumerCertificate)
 
         accessRequestInterest = Interest(Name(self.groupName).append("read_access_request").append(self.certificateName).appendVersion(int(time.time())))
