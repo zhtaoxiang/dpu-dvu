@@ -15,7 +15,7 @@ import producer.repo_command_response_pb2 as repo_command_response_pb2
 from pyndn.encoding import ProtobufTlv
 
 class TestDPU(object):
-    def __init__(self, face, encryptResult, link = None):
+    def __init__(self, face, encryptResult, defaultPrefix, link = None):
         # Set up face
         self.face = face
         self._encryptResult = encryptResult
@@ -28,7 +28,7 @@ class TestDPU(object):
             # no such file
             pass
 
-        self.groupName = Name("/org/openmhealth/zhehao")
+        self.groupName = Name(defaultPrefix)
 
         # Set up the keyChain.
         identityStorage = BasicIdentityStorage()
@@ -36,6 +36,7 @@ class TestDPU(object):
         self.keyChain = KeyChain(
           IdentityManager(identityStorage, privateKeyStorage),
           NoVerifyPolicyManager())
+
         # Authorized identity
         identityName = Name("/ndn/edu/basel/dpu")
         # Function name: the function that this DPU provides
@@ -192,8 +193,15 @@ def usage():
     return
 
 if __name__ == "__main__":
+    print "Start NAC dpu test"
+    # utcNow = datetime.datetime.utcnow()
+    # utcNowStr = utcNow.strftime('%Y%m%dT%H%M%S')
+    # utcNowWholeHour = utcNow.strftime('%Y%m%dT%H0000')
+
+    defaultPrefix = "/org/openmhealth/zhehao/"
+
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "el", ["encrypt-result", "link="])
+        opts, args = getopt.getopt(sys.argv[1:], "el", ["prefix=", "encrypt-result", "link="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
@@ -206,6 +214,8 @@ if __name__ == "__main__":
         if o in ("-h", "--help"):
             usage()
             sys.exit()
+        elif o == '--prefix':
+            defaultPrefix = a
         elif o in ("-e", "--encrypt-result"):
             encryptResult = a 
         elif o in ("-l", "--link"):
@@ -214,7 +224,7 @@ if __name__ == "__main__":
             assert False, "unhandled option"
 
     face = Face()
-    testDPU = TestDPU(face, encryptResult, link)
+    testDPU = TestDPU(face, encryptResult, defaultPrefix, link)
 
     while True:
         face.processEvents()
