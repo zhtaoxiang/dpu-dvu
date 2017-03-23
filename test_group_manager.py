@@ -94,13 +94,14 @@ class TestGroupManager(object):
         schedule1 = Schedule()
         # by default add whole day hourly intervals
         for i in xrange(0, 24):
-            interval11 = RepetitiveInterval(
+            interval1 = RepetitiveInterval(
               Schedule.fromIsoString(self.managerStartDate),
               Schedule.fromIsoString(self.managerEndDate), i, i + 1, 1,
               RepetitiveInterval.RepeatUnit.DAY)
-            schedule1.addWhiteInterval(interval11)
+            schedule1.addWhiteInterval(interval1)
         
         self.manager.addSchedule("schedule1", schedule1)
+
 
     def onMemberCertificateData(self, interest, data, accessInterest):
         print "Member certificate with name retrieved: " + data.getName().toUri() + "; member added to group!"
@@ -122,6 +123,7 @@ class TestGroupManager(object):
 
     def publishGroupKeys(self, timeStr):
         timePoint1 = Schedule.fromIsoString(timeStr)
+        print timeStr
         result = self.manager.getGroupKey(timePoint1)
 
         # The first is group public key, E-key
@@ -169,16 +171,16 @@ if __name__ == "__main__":
     utcNow = datetime.datetime.utcnow()
     utcNowStr = utcNow.strftime('%Y%m%dT%H%M%S')
     print "Current time in UTC: " + utcNowStr
-    utcNowWholeHour = utcNow.strftime('%Y%m%dT%H0000')
-    print "Current time in UTC (whole hour): " + utcNowWholeHour
+    utcNowWholeDay = utcNow.strftime('%Y%m%dT000000')
+    print "Current time in UTC (whole day): " + utcNowWholeDay
 
     utcOneDayLater = utcNow + datetime.timedelta(days = 1)
-    utcNowOneDayLater = utcOneDayLater.strftime('%Y%m%dT%H0000')
-    print "Current time in UTC (whole hour one day later): " + utcNowOneDayLater
+    utcNowOneDayLater = utcOneDayLater.strftime('%Y%m%dT000000')
+    print "Current time in UTC (whole day one day later): " + utcNowOneDayLater
 
-    startDate = utcNowWholeHour
+    startDate = utcNowWholeDay
     endDate = utcNowOneDayLater
-    defaultKeyPeriod = utcNowWholeHour
+    defaultKeyPeriod = utcNowStr
     defaultPrefix = "/org/openmhealth/zhehao/"
 
     try:
