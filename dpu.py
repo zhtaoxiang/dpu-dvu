@@ -52,7 +52,7 @@ class TestDPU(object):
 
         try:
             commandSigningKeyChain = KeyChain()
-            print "Default certificate name is: " + self.keyChain.getDefaultCertificateName().toUri()
+            print "Default certificate name is: " + commandSigningKeyChain.getDefaultCertificateName().toUri()
             self.face.setCommandSigningInfo(commandSigningKeyChain, commandSigningKeyChain.getDefaultCertificateName())
             self.memoryContentCache.registerPrefix(identityName, self.onRegisterFailed, self.onDataNotFound)
         except SecurityException as e:
@@ -95,11 +95,11 @@ class TestDPU(object):
         return
 
     def startConsuming(self, userId, basetimeString, producedDataName, dataNum, outerDataName):
-        contentName = Name(userId).append(Name("/SAMPLE/fitness/physical_activity/time_location/"))
-        baseZFill = 3
+        contentName = Name(userId).append(Name("/data/fitness/physical_activity/time_location/"))
+        baseZFill = 2
 
         for i in range(0, dataNum):
-            timeString = basetimeString + str(i).zfill(baseZFill)
+            timeString = basetimeString + str(i).zfill(baseZFill) + "00"
             timeFloat = Schedule.fromIsoString(timeString)
 
             self.consume(Name(contentName).append(timeString), producedDataName, outerDataName)
@@ -119,6 +119,7 @@ class TestDPU(object):
                 producedDataName = matching.group(3)
                 dataNum = 60
                 self._tasks[producedDataName] = {"cap_num": dataNum, "current_num": 0, "dataset": []}
+                #print str(userId),basetimeString,producedDataName,dataNum,interest.getName().toUri()
                 self.startConsuming(userId, basetimeString, producedDataName, dataNum, interest.getName().toUri())
             except Exception as e:
                 print "Exception in processing function arguments: " + str(e)
@@ -131,14 +132,15 @@ class TestDPU(object):
         return
 
     def consume(self, contentName, producedDataName, outerDataName):
-        self.consumer.consume(contentName, lambda data, result: self.onConsumeComplete(data, result, producedDataName, outerDataName), self.onConsumeFailed)
+    #self.consumer.consume(contentName, lambda data, result: self.onConsumeComplete(data, result, producedDataName, outerDataName), self.onConsumeFailed)
+      self.face.expressInterest(contentName, lambda interest, data: self.onConsumeComplete(interest, data, producedDataName, outerDataName), self.onConsumeFailed);
 
-    def onConsumeComplete(self, data, result, producedDataName, outerDataName):
+    def onConsumeComplete(self, interest, data, producedDataName, outerDataName):
         print "Consume complete for data name: " + data.getName().toUri()
 
         if producedDataName in self._tasks:
             self._tasks[producedDataName]["current_num"] += 1
-            self._tasks[producedDataName]["dataset"].append(result)
+            self._tasks[producedDataName]["dataset"].append(data.getContent())
             if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
                 maxLng = -1000
                 minLng = 1000
@@ -146,14 +148,16 @@ class TestDPU(object):
                 minLat = 1000
                 for item in self._tasks[producedDataName]["dataset"]:
                     dataObject = json.loads(str(item))
-                    if dataObject["lat"] > maxLat:
-                        maxLat = dataObject["lat"]
-                    if dataObject["lat"] < minLat:
-                        minLat = dataObject["lat"]
-                    if dataObject["lng"] > maxLng:
-                        maxLng = dataObject["lng"]
-                    if dataObject["lng"] < minLng:
-                        minLng = dataObject["lng"]
+                    for positionList in dataObject:
+                        print positionList
+                        if positionList["lat"] > maxLat:
+                            maxLat = positionList["lat"]
+                        if positionList["lat"] < minLat:
+                            minLat = positionList["lat"]
+                        if positionList["lng"] > maxLng:
+                            maxLng = positionList["lng"]
+                        if positionList["lng"] < minLng:
+                            minLng = positionList["lng"]
 
                 if not self._encryptResult:
                     innerData = Data(Name(str(producedDataName)))
@@ -172,6 +176,9 @@ class TestDPU(object):
 
     def onConsumeFailed(self, code, message):
         print "Consume error " + str(code) + ": " + message
+
+    def onCosumerTimeout(self, interest):
+        print "Consume " + interest.getName.toUri() + " time out"
 
     def initiateContentStoreInsertion(self, repoCommandPrefix, data):
         fetchName = data.getName()

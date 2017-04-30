@@ -23,8 +23,8 @@ var Config = {
 
   // not a reliable way for determining if catalog probe has finished
   catalogTimeoutThreshold: 1,
-  lngOffset: 150,
-  lngTimes: 4
+  lngOffset: 0,
+  lngTimes: 1
 }
 
 var face = new Face({host: Config.hostName, port: Config.wsPort});
@@ -120,7 +120,8 @@ function onDataNotFound(prefix, interest, face, interestFilterId, filter) {
 
 var onCatalogData = function(interest, data) {
   insertToTree(data);
-  var catalogTimestamp = data.getName().get(-2);
+  logString("<b>Data</b>:<br>" + data.getName().toUri() + "<br>" + data.getContent().toString() + "<br><br>");
+  var catalogTimestamp = data.getName().get(-1);
   var exclude = new Exclude();
   exclude.appendAny();
   // this looks for the next catalog of this user
@@ -128,46 +129,41 @@ var onCatalogData = function(interest, data) {
 
   var nextCatalogInterest = new Interest(interest);
   nextCatalogInterest.setExclude(exclude);
-  face.expressInterest(nextCatalogInterest, onCatalogData, onCatalogTimeout);
-
-  // this looks for the latest version of this catalog; note: this is not a reliable way to get the latest version
-  var catalogVersion = data.getName().get(-1);
-  var nextVersionInterest = new Interest(interest);
-  nextVersionInterest.setName(data.getName().getPrefix(-1));
-  // to exclude the cached received version;
-  var versionExclude = new Exclude();
-  versionExclude.appendAny();
-  versionExclude.appendComponent(catalogVersion);
-  nextVersionInterest.setExclude(versionExclude);
   
-  face.expressInterest(nextVersionInterest, onCatalogVersionData, onCatalogVersionTimeout);
-  catalogTimeoutCnt = 0;
-
-  onCatalogVersionData(interest, data);
+  logString("<b>Interest</b>:<br>" + interest.getName().toUri() + " (with exlude: " + exclude.toUri() + ")<br>");
+  face.expressInterest(nextCatalogInterest, onCatalogData, onCatalogTimeout);
+//
+//  // this looks for the latest version of this catalog; note: this is not a reliable way to get the latest version
+//  var catalogVersion = data.getName().get(-1);
+//  var nextVersionInterest = new Interest(interest);
+//  nextVersionInterest.setName(data.getName().getPrefix(-1));
+//  // to exclude the cached received version;
+//  var versionExclude = new Exclude();
+//  versionExclude.appendAny();
+//  versionExclude.appendComponent(catalogVersion);
+//  nextVersionInterest.setExclude(versionExclude);
+//  
+//  face.expressInterest(nextVersionInterest, onCatalogVersionData, onCatalogVersionTimeout);
+//  catalogTimeoutCnt = 0;
+//
+//  onCatalogVersionData(interest, data);
+  recordCatalogData(interest, data);
 };
 
-var onCatalogVersionData = function(interest, data) {
-  console.log("Got versioned catalog: " + data.getName().toUri());
+var recordCatalogData = function(interest, data) {
+  console.log("Got catalog: " + data.getName().toUri());
   insertToTree(data);
 
-  var catalogVersion = data.getName().get(-1);
-  var catalogTimestamp = data.getName().get(-2);
+  var catalogTimestamp = data.getName().get(-1);
 
   var dataContent = JSON.parse(data.getContent().buf().toString('binary'));
   var username = interest.getName().get(2).toEscapedString();
   if (username in userCatalogs) {
-    if (catalogTimestamp.toEscapedString() in userCatalogs[username]) {
-      if (userCatalogs[username][catalogTimestamp.toEscapedString()].last_version < catalogVersion.toVersion()) {
-        userCatalogs[username][catalogTimestamp.toEscapedString()] = {"last_version": catalogVersion.toVersion(), "content": dataContent};
-      } else {
-        console.log("Received duplicate or previous version.");
-      }
-    } else {
-      userCatalogs[username][catalogTimestamp.toEscapedString()] = {"last_version": catalogVersion.toVersion(), "content": dataContent};
-    }
+    userCatalogs[username][catalogTimestamp.toEscapedString()] = {"content": dataContent};
+    
   } else {
     userCatalogs[username] = [];
-    userCatalogs[username][catalogTimestamp.toEscapedString()] = {"last_version": catalogVersion.toVersion(), "content": dataContent};
+    userCatalogs[username][catalogTimestamp.toEscapedString()] = {"content": dataContent};
   }
 }
 
@@ -182,8 +178,10 @@ var onCatalogTimeout = function(interest) {
     face.expressInterest(interest, onCatalogData, onCatalogTimeout);
   } else {
     console.log("No longer looking for more catalogs.");
+    logString("<b>Data</b>:<br> data doesn't exist<br><br>");
     catalogProbeFinished = true;
     if (catalogProbeFinishedCallback != null) {
+      console.log("Continue to fetch data now");
       catalogProbeFinishedCallback(userCatalogs);
     } else {
       console.log("Catalog probe finished, callback unspecified");
@@ -205,6 +203,7 @@ function getCatalogs(username) {
 
   console.log("Express name " + name.toUri());
   face.expressInterest(interest, onCatalogData, onCatalogTimeout);
+  logString("<b>Interest</b>:<br>" + interest.getName().toUri() + "<br>");
 };
 
 // For unencrypted data
@@ -213,10 +212,12 @@ function getUnencryptedData(catalogs) {
     console.log("Catalog probe still in progress; may fetch older versioned data.");
   }
   for (username in catalogs) {
-    var name = new Name(Config.defaultPrefix + username).append(new Name("SAMPLE")).append(new Name(Config.dataPrefix));
+    console.log(username);
+    var name = new Name(Config.defaultPrefix + username).append(new Name("data")).append(new Name(Config.dataPrefix));
     for (catalog in catalogs[username]) {
       for (dataItem in catalogs[username][catalog].content) {
-        var isoTimeString = Schedule.toIsoString(catalogs[username][catalog].content[dataItem] * 1000);
+        var isoTimeString = catalogs[username][catalog].content[dataItem];
+        console.log(isoTimeString);
         var interest = new Interest(new Name(name).append(isoTimeString));
         interest.setInterestLifetimeMilliseconds(Config.defaultInterestLifetime);
         face.expressInterest(interest, onAppData, onAppDataTimeout);
@@ -234,7 +235,7 @@ function getEncryptedData(catalogs) {
     var name = new Name(Config.defaultPrefix + username).append(new Name("SAMPLE")).append(new Name(Config.dataPrefix));
     for (catalog in catalogs[username]) {
       for (dataItem in catalogs[username][catalog].content) {
-        var isoTimeString = Schedule.toIsoString(catalogs[username][catalog].content[dataItem] * 1000);
+        var isoTimeString = catalogs[username][catalog].content[dataItem];
         nacConsumer.consume(new Name(name).append(isoTimeString), onConsumeComplete, onConsumeFailed);
         logString("<b>Interest</b>: " + (new Name(name).append(isoTimeString)).toUri() + " <br>");
       }
@@ -250,7 +251,7 @@ function onConsumeComplete(data, result) {
 
   var canvas = document.getElementById("plotCanvas");
   var ctx = canvas.getContext("2d");
-  ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 2, 2);
+  ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 1, 1);
 
   logString("<b>Data</b>: " + data.getName().toUri() + " <br>");
   logString("<b style=\"color:green\">Consume successful</b><br>");
@@ -352,11 +353,14 @@ var onAppData = function (interest, data) {
   try {
     var content = JSON.parse(data.getContent().buf().toString('binary'));
     console.log("Fitness payload: " + JSON.stringify(content));
-    console.log("Data keyLocator keyName: " + data.getSignature().getKeyLocator().getKeyName().toUri());
+//    console.log("Data keyLocator keyName: " + data.getSignature().getKeyLocator().getKeyName().toUri());
 
     var canvas = document.getElementById("plotCanvas");
     var ctx = canvas.getContext("2d");
-    ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 2, 2);
+    for (dataItem in content) {
+      ctx.fillRect(content[dataItem].lng, content[dataItem].lat, 2, 2);
+    }
+//    ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 2, 2);
 
     logString("<b>Interest</b>: " + interest.getName().toUri() + " <br>");
     logString("<b>Data</b>: " + data.getName().toUri() + " <br>");
@@ -406,12 +410,18 @@ function onDPUData(interest, data) {
   var canvas = document.getElementById("plotCanvas");
   var ctx = canvas.getContext("2d");
   ctx.beginPath();
-  ctx.moveTo(dpuObject.minLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
-  ctx.lineTo(dpuObject.minLat * Config.lngTimes, (dpuObject.maxLng + Config.lngOffset) * Config.lngTimes);
-
-  ctx.lineTo(dpuObject.maxLat * Config.lngTimes, (dpuObject.maxLng + Config.lngOffset) * Config.lngTimes);
-  ctx.lineTo(dpuObject.maxLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
-  ctx.lineTo(dpuObject.minLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
+//  ctx.moveTo(dpuObject.minLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
+//  ctx.lineTo(dpuObject.minLat * Config.lngTimes, (dpuObject.maxLng + Config.lngOffset) * Config.lngTimes);
+//
+//  ctx.lineTo(dpuObject.maxLat * Config.lngTimes, (dpuObject.maxLng + Config.lngOffset) * Config.lngTimes);
+//  ctx.lineTo(dpuObject.maxLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
+//  ctx.lineTo(dpuObject.minLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
+  ctx.moveTo(dpuObject.minLng, dpuObject.minLat);
+  ctx.lineTo(dpuObject.minLng, dpuObject.maxLat);
+  
+  ctx.lineTo(dpuObject.maxLng, dpuObject.maxLat);
+  ctx.lineTo(dpuObject.maxLng, dpuObject.minLat);
+  ctx.lineTo(dpuObject.minLng, dpuObject.minLat);
   ctx.strokeStyle = '#ff0000';
   ctx.stroke();
 

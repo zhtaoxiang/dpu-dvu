@@ -86,20 +86,20 @@
         Follow username: <br><input id="userInput" type="text" value="zhehao" readonly size="40"></input> <br>
         DSU name: <br><input id="dsu-link" type="text" value="zhehao" readonly size="40"></input> <br>
         DPU prefix: <br><input id="dpu-prefix" type="text" value="zhehao" readonly size="40"></input> <br>
-        DPU parameters: <br><textarea id="dpu-param" cols="33" style="height:60px">/org/openmhealth/zhehao,20160620T080,/org/openmhealth/zhehao/SAMPLE/fitness/physical_activity/processed_result/bounding_box/20160620T080000</textarea><br>
+        DPU parameters: <br><textarea id="dpu-param" cols="33" style="height:60px">/org/openmhealth/zhehao,20160620T08,/org/openmhealth/zhehao/data/fitness/physical_activity/processed_result/bounding_box/20160620T080000</textarea><br>
       </p>
       <input id="fetchEncrypted" type="checkbox">Fetch encrypted</input> <br>
       
       <button id="userBtn" onclick="getUsers()">Scan users</button> <br>
       
-      <button id="catalogBtn" onclick="getCatalogsClick()">Get data</button> <br>
+      <button id="catalogBtn" onclick="getCatalogsClick()">Get Catalog and Data</button> <br>
 
       <button id="dpuBtn" onclick="issueDPUInterestClick()">Call DPU</button> <br>
       <button id="accessBtn" onclick="requestDataAccessClick()">Request data access</button> <br>
     </div>
     <div class="column-center">
       <span>2D location data bounding box visualization:</span><br>
-      <canvas id="plotCanvas" width="200" height="200" class="canvas-class"></canvas> <br>
+      <canvas id="plotCanvas" width="600" height="200" class="canvas-class"></canvas> <br>
       <span id="content">Log:</span> <br>
       <p id="log" class="canvas-class"></p>
     </div>
