@@ -10,18 +10,18 @@ from pyndn.security.identity import IdentityManager
 from pyndn.security.identity import BasicIdentityStorage, FilePrivateKeyStorage, MemoryIdentityStorage, MemoryPrivateKeyStorage
 from pyndn.security.policy import NoVerifyPolicyManager
 
-import producer.repo_command_parameter_pb2 as repo_command_parameter_pb2
-import producer.repo_command_response_pb2 as repo_command_response_pb2
+from dpu_dvu.repo_command import repo_command_parameter_pb2
+from dpu_dvu.repo_command import repo_command_response_pb2
 from pyndn.encoding import ProtobufTlv
 
-class TestDPU(object):
+class DPU(object):
     def __init__(self, face, encryptResult, defaultPrefix, link = None):
         # Set up face
         self.face = face
         self._encryptResult = encryptResult
         self._link = link
 
-        self.databaseFilePath = "policy_config/test_consumer_dpu.db"
+        self.databaseFilePath = "dpu.db"
         try:
             os.remove(self.databaseFilePath)
         except OSError:
@@ -132,53 +132,75 @@ class TestDPU(object):
         return
 
     def consume(self, contentName, producedDataName, outerDataName):
-    #self.consumer.consume(contentName, lambda data, result: self.onConsumeComplete(data, result, producedDataName, outerDataName), self.onConsumeFailed)
-      self.face.expressInterest(contentName, lambda interest, data: self.onConsumeComplete(interest, data, producedDataName, outerDataName), self.onConsumeFailed);
+    #self.consumer.consume(contentName, lambda data, result: self.onConsumeEncryptedComplete(data, result, producedDataName, outerDataName), lambda code, message: self.onConsumeFailed(code, message, producedDataName, outerDataName))
+        self.face.expressInterest(contentName, lambda interest, data: self.onConsumeUnencryptedComplete(interest, data, producedDataName, outerDataName), lambda interest: self.onConsumeTiemout(interest, producedDataName, outerDataName));
 
-    def onConsumeComplete(self, interest, data, producedDataName, outerDataName):
+    def onConsumeEncryptedComplete(self, interest, data, producedDataName, outerDataName):
         print "Consume complete for data name: " + data.getName().toUri()
 
         if producedDataName in self._tasks:
             self._tasks[producedDataName]["current_num"] += 1
             self._tasks[producedDataName]["dataset"].append(data.getContent())
             if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
-                maxLng = -1000
-                minLng = 1000
-                maxLat = -1000
-                minLat = 1000
-                for item in self._tasks[producedDataName]["dataset"]:
-                    dataObject = json.loads(str(item))
-                    for positionList in dataObject:
-                        print positionList
-                        if positionList["lat"] > maxLat:
-                            maxLat = positionList["lat"]
-                        if positionList["lat"] < minLat:
-                            minLat = positionList["lat"]
-                        if positionList["lng"] > maxLng:
-                            maxLng = positionList["lng"]
-                        if positionList["lng"] < minLng:
-                            minLng = positionList["lng"]
+                self.produceResult(producedDataName, outerDataName)
 
-                if not self._encryptResult:
-                    innerData = Data(Name(str(producedDataName)))
-                    innerData.setContent(json.dumps({"minLat": minLat, "maxLat": maxLat, "minLng": minLng, "maxLng": maxLng}))
-                    #self.keyChain.sign(innerData)
+    def onConsumeUnencryptedComplete(self, data, result, producedDataName, outerDataName):
+        print "Consume complete for data name: " + data.getName().toUri()
+    
+        if producedDataName in self._tasks:
+            self._tasks[producedDataName]["current_num"] += 1
+            self._tasks[producedDataName]["dataset"].append(result)
+            if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
+                self.produceResult(producedDataName, outerDataName)
 
-                    outerData = Data(Name(str(outerDataName)))
-                    outerData.setContent(innerData.wireEncode())
-                    #self.keyChain.sign(outerData)
+    def produceResult(self, producedDataName, outerDataName):
+        maxLng = -1000
+        minLng = 1000
+        maxLat = -1000
+        minLat = 1000
+        for item in self._tasks[producedDataName]["dataset"]:
+            dataObject = json.loads(str(item))
+            for positionList in dataObject:
+                print positionList
+                if positionList["lat"] > maxLat:
+                    maxLat = positionList["lat"]
+                if positionList["lat"] < minLat:
+                    minLat = positionList["lat"]
+                if positionList["lng"] > maxLng:
+                    maxLng = positionList["lng"]
+                if positionList["lng"] < minLng:
+                    minLng = positionList["lng"]
+            
+        if not self._encryptResult:
+            innerData = Data(Name(str(producedDataName)))
+            innerData.setContent(json.dumps({"minLat": minLat, "maxLat": maxLat, "minLng": minLng, "maxLng": maxLng}))
+            #self.keyChain.sign(innerData)
+                    
+            outerData = Data(Name(str(outerDataName)))
+            outerData.setContent(innerData.wireEncode())
+            #self.keyChain.sign(outerData)
+            
+            self.memoryContentCache.add(outerData)
+            self.initiateContentStoreInsertion("/ndn/edu/ucla/remap/ndnfit/repo", outerData)
+            print "Calculation completed, put data to repo"
+        else:
+            print "Encrypt result is not implemented"
 
-                    self.memoryContentCache.add(outerData)
-                    self.initiateContentStoreInsertion("/ndn/edu/ucla/remap/ndnfit/repo", outerData)
-                    print "Calculation completed, put data to repo"
-                else:
-                    print "Encrypt result is not implemented"
-
-    def onConsumeFailed(self, code, message):
+    def onConsumeFailed(self, code, message, producedDataName, outerDataName):
         print "Consume error " + str(code) + ": " + message
+        if producedDataName in self._tasks:
+            self._tasks[producedDataName]["current_num"] += 1
+            if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
+                self.produceResult(producedDataName, outerDataName)
 
-    def onCosumerTimeout(self, interest):
+    def onCosumerTimeout(self, interest, producedDataName, outerDataName):
         print "Consume " + interest.getName.toUri() + " time out"
+        if producedDataName in self._tasks:
+            self._tasks[producedDataName]["current_num"] += 1
+            if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
+                self.produceResult(producedDataName, outerDataName)
+
+
 
     def initiateContentStoreInsertion(self, repoCommandPrefix, data):
         fetchName = data.getName()
@@ -204,24 +226,29 @@ class TestDPU(object):
         return
 
 def usage():
-    print "Fill this in"
+    print "usage:  python2 dpu.py [-h] [-p <prefix>] [-e] [-l <link>]"
+    print ""
+    print "Command Summary:"
+    print " -h, --help                 display help messages"
+    print " -p, --prefix <prefix>      configure the prefix"
+    print " -e, --encrypt-result       decide whether to encrypt processed result or not"
+    print " -l, --link                 link used to fetch"
     return
 
 if __name__ == "__main__":
-    print "Start NAC dpu test"
+    # print "Start NAC dpu test"
     # utcNow = datetime.datetime.utcnow()
     # utcNowStr = utcNow.strftime('%Y%m%dT%H%M%S')
     # utcNowWholeHour = utcNow.strftime('%Y%m%dT%H0000')
 
-    defaultPrefix = "/org/openmhealth/zhehao/"
-
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "el", ["prefix=", "encrypt-result", "link="])
+        opts, args = getopt.getopt(sys.argv[1:], "help", ["--help", "prefix=", "encrypt-result", "link="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
     
+    defaultPrefix = "/org/openmhealth/zhehao/"
     encryptResult = False
     link = None
 
@@ -229,7 +256,7 @@ if __name__ == "__main__":
         if o in ("-h", "--help"):
             usage()
             sys.exit()
-        elif o == '--prefix':
+        elif o in ("-p", "--prefix"):
             defaultPrefix = a
         elif o in ("-e", "--encrypt-result"):
             encryptResult = a 
@@ -239,7 +266,7 @@ if __name__ == "__main__":
             assert False, "unhandled option"
 
     face = Face()
-    testDPU = TestDPU(face, encryptResult, defaultPrefix, link)
+    DPU = DPU(face, encryptResult, defaultPrefix, link)
 
     while True:
         face.processEvents()

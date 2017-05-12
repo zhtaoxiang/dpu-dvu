@@ -24,7 +24,13 @@ var Config = {
   // not a reliable way for determining if catalog probe has finished
   catalogTimeoutThreshold: 1,
   lngOffset: 0,
-  lngTimes: 1
+  lngTimes: 1,
+  map: null,
+  minLng: -180,
+  minLat: -90,
+  maxLng: 180,
+  maxLat: 90,
+  path: []
 }
 
 var face = new Face({host: Config.hostName, port: Config.wsPort});
@@ -358,9 +364,30 @@ var onAppData = function (interest, data) {
     var canvas = document.getElementById("plotCanvas");
     var ctx = canvas.getContext("2d");
     for (dataItem in content) {
-      ctx.fillRect(content[dataItem].lng, content[dataItem].lat, 2, 2);
+      ctx.fillRect(content[dataItem].lng, content[dataItem].lat, 1, 1);
+      if(content[dataItem].lat < Config.minLat) {
+        Config.minLat = content[dataItem].lat;
+      }
+      if(content[dataItem].lat > Config.maxLat) {
+        Config.maxLat = content[dataItem].lat;
+      }
+      if(content[dataItem].lng < Config.minLng) {
+        Config.minLng = content[dataItem].lng;
+      }
+      if(content[dataItem].lng > Config.maxLng) {
+        Config.maxLng = content[dataItem].lng;
+      }
+      Config.path.push(new google.maps.LatLng(content[dataItem].lat / 100000 + 34.0635014, content[dataItem].lng / 100000 - 118.445516));
     }
-//    ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 2, 2);
+    Config.map.setCenter({lat : (Config.minLat + Config.maxLat) / 200000 + 34.0635014, lng : (Config.minLng + Config.maxLng) / 200000 - 118.445516});
+    Config.map.setZoom(16);
+    var flightPath = new google.maps.Polyline({
+      path: Config.path,
+      strokeColor: "#0000FF",
+      strokeOpacity: 0.8,
+      strokeWeight: 2
+      });
+    flightPath.setMap(Config.map);
 
     logString("<b>Interest</b>: " + interest.getName().toUri() + " <br>");
     logString("<b>Data</b>: " + data.getName().toUri() + " <br>");
@@ -410,12 +437,6 @@ function onDPUData(interest, data) {
   var canvas = document.getElementById("plotCanvas");
   var ctx = canvas.getContext("2d");
   ctx.beginPath();
-//  ctx.moveTo(dpuObject.minLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
-//  ctx.lineTo(dpuObject.minLat * Config.lngTimes, (dpuObject.maxLng + Config.lngOffset) * Config.lngTimes);
-//
-//  ctx.lineTo(dpuObject.maxLat * Config.lngTimes, (dpuObject.maxLng + Config.lngOffset) * Config.lngTimes);
-//  ctx.lineTo(dpuObject.maxLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
-//  ctx.lineTo(dpuObject.minLat * Config.lngTimes, (dpuObject.minLng + Config.lngOffset) * Config.lngTimes);
   ctx.moveTo(dpuObject.minLng, dpuObject.minLat);
   ctx.lineTo(dpuObject.minLng, dpuObject.maxLat);
   
@@ -436,4 +457,8 @@ function onDPUTimeout(interest) {
   var interest = new Interest(interest);
   interest.refreshNonce();
   face.expressInterest(interest, onDPUData, onDPUTimeout);
+}
+
+function setMap(map) {
+  Config.map = map;
 }

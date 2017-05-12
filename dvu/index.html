@@ -13,6 +13,15 @@
   <script type="text/javascript" src="js/tree.js"></script>
   
   <script type="text/javascript">
+    myMap = function () {
+      var london = new google.maps.LatLng(34.0635014,-118.4455163);
+      
+      var mapCanvas = document.getElementById("googlemap");
+      var mapOptions = {center: london, zoom: 1};
+      var map = new google.maps.Map(mapCanvas,mapOptions);
+      setMap(map);
+    }
+  
     catalogProbeFinishedCallback = function (catalogs) {
       var username = document.getElementById("userInput").value;
       var fetchEncrypted = document.getElementById("fetchEncrypted").checked;
@@ -98,6 +107,8 @@
       <button id="accessBtn" onclick="requestDataAccessClick()">Request data access</button> <br>
     </div>
     <div class="column-center">
+      <span>Walking path and bounding box:</span><br>
+      <div id="googlemap" style="width:100%;height:330px"></div>
       <span>2D location data bounding box visualization:</span><br>
       <canvas id="plotCanvas" width="600" height="200" class="canvas-class"></canvas> <br>
       <span id="content">Log:</span> <br>
@@ -109,7 +120,7 @@
       <div id="tree"></div>
     </div>
   </div>
-  
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBCHdTHbhmaQJvGGBLCphNFyp14wXPbcBQ&callback=myMap"></script>
 </body>
 
 <html>
