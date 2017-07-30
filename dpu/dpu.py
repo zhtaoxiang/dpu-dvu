@@ -38,7 +38,7 @@ class DPU(object):
           NoVerifyPolicyManager())
 
         # Authorized identity
-        identityName = Name("/ndn/edu/ucla/remap/dpu")
+        identityName = Name("/org/openmhealth/dpu")
         # Function name: the function that this DPU provides
         self._functionName = "bounding_box"
         self._identityName = identityName

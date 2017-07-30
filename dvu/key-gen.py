@@ -18,7 +18,7 @@ keyChain = KeyChain(
           NoVerifyPolicyManager())
 
 # dvu identity
-identityName = Name("/ndn/edu/ucla/remap/dvu")
+identityName = Name("/org/openmhealth/dvu")
 certificateName = keyChain.createIdentityAndCertificate(identityName)
 keyName = IdentityCertificate.certificateNameToPublicKeyName(certificateName)
 certificate = identityStorage.getCertificate(certificateName)
