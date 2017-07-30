@@ -1,6 +1,6 @@
 import unittest as ut
 import os, time, base64, re, json, sys, getopt
-from pyndn import Name, Data, Face, Interest, Link
+from pyndn import Name, Data, Face, Interest, Link, MetaInfo
 from pyndn.util import Blob, MemoryContentCache
 from pyndn.encrypt import Schedule, Consumer, Sqlite3ConsumerDb, EncryptedContent
 
@@ -38,7 +38,7 @@ class DPU(object):
           NoVerifyPolicyManager())
 
         # Authorized identity
-        identityName = Name("/ndn/edu/basel/dpu")
+        identityName = Name("/ndn/edu/ucla/remap/dpu")
         # Function name: the function that this DPU provides
         self._functionName = "bounding_box"
         self._identityName = identityName
@@ -72,19 +72,25 @@ class DPU(object):
         with open(privateKeyStorage.nameTransform(consumerKeyName.toUri(), ".pri")) as keyFile:
             print privateKeyStorage.nameTransform(consumerKeyName.toUri(), ".pri")
             base64Content = keyFile.read()
-            #print base64Content
+            print base64Content
         der = Blob(base64.b64decode(base64Content), False)
         self.consumer.addDecryptionKey(consumerKeyName, der)
+        print consumerKeyName
         self.memoryContentCache.add(consumerCertificate)
 
+        # request access to user's data, this maybe needed later, but not now
+        '''
         accessRequestInterest = Interest(Name(self.groupName).append("read_access_request").append(self.certificateName).appendVersion(int(time.time())))
         self.face.expressInterest(accessRequestInterest, self.onAccessRequestData, self.onAccessRequestTimeout)
         print "Access request interest name: " + accessRequestInterest.getName().toUri()
+        '''
 
         self._tasks = dict()
 
         return
 
+    # request access to user's data, this maybe needed later, but not now
+    '''
     def onAccessRequestData(self, interest, data):
         print "Access request data: " + data.getName().toUri()
         return
@@ -93,9 +99,10 @@ class DPU(object):
         print "Access request times out: " + interest.getName().toUri()
         print "Assuming certificate sent and D-key generated"
         return
+    '''
 
     def startConsuming(self, userId, basetimeString, producedDataName, dataNum, outerDataName):
-        contentName = Name(userId).append(Name("/data/fitness/physical_activity/time_location/"))
+        contentName = Name(userId).append(Name("/SAMPLE/fitness/physical_activity/time_location/"))
         baseZFill = 2
 
         for i in range(0, dataNum):
@@ -132,10 +139,13 @@ class DPU(object):
         return
 
     def consume(self, contentName, producedDataName, outerDataName):
-    #self.consumer.consume(contentName, lambda data, result: self.onConsumeEncryptedComplete(data, result, producedDataName, outerDataName), lambda code, message: self.onConsumeFailed(code, message, producedDataName, outerDataName))
+        self.consumer.consume(contentName, lambda data, result: self.onConsumeEncryptedComplete(data, result, producedDataName, outerDataName), lambda code, message: self.onConsumeFailed(code, message, producedDataName, outerDataName))
+        # the following code is used for testing popurse, testing fetching unencrypted data
+        '''
         self.face.expressInterest(contentName, lambda interest, data: self.onConsumeUnencryptedComplete(interest, data, producedDataName, outerDataName), lambda interest: self.onConsumeTiemout(interest, producedDataName, outerDataName));
+        '''
 
-    def onConsumeEncryptedComplete(self, interest, data, producedDataName, outerDataName):
+    def onConsumeUnEncryptedComplete(self, interest, data, producedDataName, outerDataName):
         print "Consume complete for data name: " + data.getName().toUri()
 
         if producedDataName in self._tasks:
@@ -144,7 +154,7 @@ class DPU(object):
             if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
                 self.produceResult(producedDataName, outerDataName)
 
-    def onConsumeUnencryptedComplete(self, data, result, producedDataName, outerDataName):
+    def onConsumeEncryptedComplete(self, data, result, producedDataName, outerDataName):
         print "Consume complete for data name: " + data.getName().toUri()
     
         if producedDataName in self._tasks:
@@ -161,7 +171,7 @@ class DPU(object):
         for item in self._tasks[producedDataName]["dataset"]:
             dataObject = json.loads(str(item))
             for positionList in dataObject:
-                print positionList
+#                print positionList
                 if positionList["lat"] > maxLat:
                     maxLat = positionList["lat"]
                 if positionList["lat"] < minLat:
@@ -174,15 +184,21 @@ class DPU(object):
         if not self._encryptResult:
             innerData = Data(Name(str(producedDataName)))
             innerData.setContent(json.dumps({"minLat": minLat, "maxLat": maxLat, "minLng": minLng, "maxLng": maxLng}))
-            #self.keyChain.sign(innerData)
+            self.keyChain.sign(innerData)
                     
             outerData = Data(Name(str(outerDataName)))
             outerData.setContent(innerData.wireEncode())
-            #self.keyChain.sign(outerData)
+#            metaInfo = MetaInfo()
+#            metaInfo.setFreshnessPeriod(1)
+#            outerData.setMetaInfo(metaInfo)
+            self.keyChain.sign(outerData)
             
+            print "generate final result"
+            print outerData.getName()
             self.memoryContentCache.add(outerData)
-            self.initiateContentStoreInsertion("/ndn/edu/ucla/remap/ndnfit/repo", outerData)
-            print "Calculation completed, put data to repo"
+#            do not insert data into repo
+#            self.initiateContentStoreInsertion("/ndn/edu/ucla/remap/ndnfit/repo", outerData)
+#            print "Calculation completed, put data to repo"
         else:
             print "Encrypt result is not implemented"
 
@@ -190,6 +206,7 @@ class DPU(object):
         print "Consume error " + str(code) + ": " + message
         if producedDataName in self._tasks:
             self._tasks[producedDataName]["current_num"] += 1
+#            print self._tasks[producedDataName]["current_num"]
             if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
                 self.produceResult(producedDataName, outerDataName)
 
@@ -197,10 +214,9 @@ class DPU(object):
         print "Consume " + interest.getName.toUri() + " time out"
         if producedDataName in self._tasks:
             self._tasks[producedDataName]["current_num"] += 1
+#            print self._tasks[producedDataName]["current_num"]
             if self._tasks[producedDataName]["current_num"] == self._tasks[producedDataName]["cap_num"]:
                 self.produceResult(producedDataName, outerDataName)
-
-
 
     def initiateContentStoreInsertion(self, repoCommandPrefix, data):
         fetchName = data.getName()
@@ -248,7 +264,7 @@ if __name__ == "__main__":
         usage()
         sys.exit(2)
     
-    defaultPrefix = "/org/openmhealth/zhehao/"
+    defaultPrefix = "/org/openmhealth/haitao"
     encryptResult = False
     link = None
 

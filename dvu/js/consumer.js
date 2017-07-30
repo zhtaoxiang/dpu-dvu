@@ -15,9 +15,9 @@ var Exclude = require('ndn-js').Exclude;
 var Config = {
 	hostName: "localhost",
   wsPort: 9696,
-  defaultUsername: "zhehao",
+  defaultUsername: "haitao",
   defaultPrefix: "/org/openmhealth/",
-  catalogPrefix: "/data/fitness/physical_activity/time_location/catalog/",
+  catalogPrefix: "/SAMPLE/fitness/physical_activity/time_location/catalog",
   dataPrefix: "/fitness/physical_activity/time_location/",
   defaultInterestLifetime: 1000,
 
@@ -41,6 +41,24 @@ var catalogProbeFinished = false;
 
 var catalogProbeFinishedCallback = null;
 
+// decreption key info, TODO: this should be gotten from the server later
+/*
+var identityStorageForDkey = new BasicIdentityStorage();
+var privateKeyStorageForDkey = new FilePrivateKeyStorage();
+var policyManagerForDkey = new NoVerifyPolicyManager();
+
+var keyChainForDkey = new KeyChain(new IdentityManager(identityStorageForDkey, privateKeyStorageForDkey),
+                                   policyManagerForDkey);
+keyChainForDkey.setFace(face);
+var dvuIdentityName = new Name("/ndn/edu/ucla/dvu");
+var dkeyName = undefined;
+var dkeyContent = undefined;
+var dkeyCertName = undefined;*/
+
+// dkey info
+var dkeyName = new Name("/ndn/edu/ucla/remap/dvu/ksk-1498805339");
+var dkeyContentBase64 = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDgLipeeexmu4YR/HjJZjxlX4Heabu/9HAoc1oCUzDoMQQyNKLMUjz+cAKXG9iUA44e6idUVtHvFcMSjo3vG/tQ61MTB75dpN+lLmbXx5hVujVefXnaabnU+XjvyluMc0Qw/ApTmyizDm0X8HsDnwJGZdnZ1E5+5EtjJPOkKCwc0UDeLOSbdELY/wPmbD3NWp93slM2VxlGoNKwNZUzHyIkpJ3eIsSbzEwegeV9njdoCvpxQxkaNORAt7Rnp+wMcaQyoQ8KzdT0/prVUmXtGAeZ8nfquJvmJQNte31jo3uLHQewCXIbpWO+4xxcewvU0UNncqUfP96ZtqJjlNWhlUtrAgMBAAECggEAHsd33bzTrk802ydU1iIJTMnOJOFTe8lt1L/xrbwKTPbd4p7Dc1YfNbffQyv5kmjijHANslCxRigwvk2AQ0IOQU/t+gDoLCdE5YL3b8zhp3OHfE+x+UDm2Mzfw9x+sUvqIueX6160OdFTPSQxX4/nWg8F2BiEJnvltdkO8ozpcZMvfG8HczuL1O3bM7iduAK3u99JCTY34e9y76EKXi7z/M8+7EqiZFMH6QfgEvOTuOuokr0y2jedxKvsfZpepoJCwDdhoGmA+zXZQ9c1x7F21cvN/gNFFrYAJ5swzcLZjF9RFjZ3Rg8dW6Av+gul41AYmMzBGeD7iQBFFXPCuODyIQKBgQD8F/IEhdbUT2M1BVmujhW2n8Eoozr7f8b/jjA9o4E0YDPzhP6Mo0bbzefQ6ilt5qC6iwn8urA1wnKG/3Y2D6Gbdki/SYKDaby0uCy7NGnV/T7gT/5VQAyenNyu9V5wy8N6JOVyEPkJLjtyYu0oiIhHOJM3Uac5TySyBYjiKUgO4wKBgQDjp30OHD59YBRSZAIS9NRdlrQy7M7QGg9YI1SMjvQSpXNY725XhhvSo5IGnJID7eMQ4ygqccU1V3jeKBk8a76ksHLjl1Nb4TZHBqhS1vk7XQKw/NjM/m6wVZ4rNca9f0+cS13iNdm4i5qH8Op39FDXDsx7yGp1UuIcXDOp0jcv2QKBgQD5HMiCA6gpIVINwP3AapO2ZePAvpy4jqodO2scXgh9s1tjF1dbrrWE29JqNhs+iRrnfCIgZnNejIoUMTmlbojqUVbOAFxCdCiQBTfevoqfdaO+kg3oPGS8EJJbKglrOVAv0WoS8AbINbF09aEZ3uGcT6HalovDLBw89w8vPlAAtQKBgHu1PyqUxIxi0og3Gj1s154Hz+JAdt3021O81ywOXqlnSPgSG/bpxGLBSg/Xsyz5b0N0/RWbf1vOLbsjNRt1PULHM5djWwP5rQIJpxxk/0h38Yd1zuYOeN3PmMTIUzgUX5GCDwFm2+oByraGfxMyK1/CBfJZ5SfeI0rf+58TwbN5AoGBAIKR3Wb9Dl6qCb4GuButgNXTZuTE2WRT5u/uzBu4/RIB7bepmWrO05wUFO0tRijWV6YJJlLIgskhsgH9Z3e59ySrAr5satTUCy1Pze/fMzOSH1Bn78slZkvR4nXPCGxZaL7w0RNnHERieisp1itQsfASKmTtie238+DyLqmrCmY0";
+
 // Setting up keyChain
 var identityStorage = new IndexedDbIdentityStorage();
 var privateKeyStorage = new IndexedDbPrivateKeyStorage();
@@ -58,12 +76,13 @@ var memoryContentCache = new MemoryContentCache(face);
 var certificateName = undefined;
 
 // For now, hard-coded group name
-var groupName = new Name("/org/openmhealth/zhehao");
+var groupName = new Name("/org/openmhealth/haitao");
 indexedDB.deleteDatabase("consumer-db");
 var consumerDb = new IndexedDbConsumerDb("consumer-db");
-var DPUPrefix = "/ndn/edu/basel/dpu/bounding_box";
+//var DPUPrefix = "/ndn/edu/basel/dpu/bounding_box";
+var DPUPrefix = "/ndn/edu/ucla/remap/dpu/bounding_box";
 var DSULink = "/ndn/edu/ucla/remap";
-var nacConsumer = new Consumer(face, keyChain, groupName, consumerIdentityName, consumerDb);
+var nacConsumer = new Consumer(face, keyChain, groupName, new Name("/ndn/edu/ucla/remap/dvu"), consumerDb);
 
 function init() {
   document.getElementById("identity").value = consumerIdentityName.toUri();
@@ -78,9 +97,28 @@ function init() {
   collapseAll.onclick = function () { treeView.collapseAll(); };
 }
 
+// This part is temporary. Later, the logic will be revised to :
+// the running instance gets dkey name and its content from web server, and simply inters it into
+// consumer DB
+/*
+this.keyChainForDkey.createIdentityAndCertificate(dvuIdentityName, function(dvuCertName) {
+  console.log("dvuCertName: " + dvuCertName.toUri());
+  dkeyCertName = dvuCertName;
+  memoryContentCache.registerPrefix(dvuIdentityName, onRegisterFailed, onDataNotFound);
+  keyChainForDkey.getIdentityManager().identityStorage.getCertificatePromise(dvuCertName, false)
+    then(function(certificate) {
+      certBase64String = certificate.wireEncode().buf().toString('base64');
+      memoryContentCache.add(certificate);
+      console.log("added my certificate to memoryContentCache: " + certificate.getName().toUri())
+    });
+  dkeyName = IdentityCertificate.certificateNameToPublicKeyName(dvuCertName);
+  getPrivateKeyAndInsertPromise(privateKeyStorageForDkey, dkeyName, consumerDb);
+});*/
+
 this.keyChain.createIdentityAndCertificate(consumerIdentityName, function(myCertificateName) {
   console.log("myCertificateName: " + myCertificateName.toUri());
   certificateName = myCertificateName;
+                                           
 
   face.setCommandSigningInfo(keyChain, myCertificateName);
   memoryContentCache.registerPrefix(consumerIdentityName, onRegisterFailed, onDataNotFound);
@@ -88,16 +126,35 @@ this.keyChain.createIdentityAndCertificate(consumerIdentityName, function(myCert
   keyChain.getIdentityManager().identityStorage.getCertificatePromise(myCertificateName, false).then(function(certificate) {
     certBase64String = certificate.wireEncode().buf().toString('base64');
     memoryContentCache.add(certificate);
-    console.log("added my certificate to db: " + certificate.getName().toUri())
+    console.log("added my certificate to memoryContentCache: " + certificate.getName().toUri())
   });
   
   // Make sure we can decrypt the encrypted D-key
-  getPrivateKeyAndInsertPromise(privateKeyStorage, IdentityCertificate.certificateNameToPublicKeyName(myCertificateName), consumerDb);
+  // This key is used locally
+  // getPrivateKeyAndInsertPromise(privateKeyStorage, IdentityCertificate.certificateNameToPublicKeyName(myCertificateName), consumerDb);
+  Promise.resolve(consumerDb.addKeyPromise(dkeyName, new Blob(new Buffer(dkeyContentBase64, 'base64'), false)));
 }, function (error) {
   console.log("Error in createIdentityAndCertificate: " + error);
 });
 
+function base64ToUint8Array(base64) {
+  var raw = atob(base64);
+  var rawLength = raw.length;
+  console.log(rawLength);
+  var array = new Uint8Array(new ArrayBuffer(rawLength));
+  
+  for(var i = 0; i < rawLength; i++) {
+    array[i] = raw.charCodeAt(i);
+  }
+  return array;
+}
+
+function Uint8ArrayToBase64(uint8Array) {
+  return btoa(String.fromCharCode.apply(null, uint8Array));
+}
+
 // Hack for get private key promise...
+/*
 function getPrivateKeyAndInsertPromise(privateKeyDb, keyName, consumerDb) {
   return privateKeyDb.database.privateKey.get
     (IndexedDbPrivateKeyStorage.transformName(keyName))
@@ -112,9 +169,11 @@ function getPrivateKeyAndInsertPromise(privateKeyDb, keyName, consumerDb) {
     }
     //consumer.addDecryptionKey(keyName, new Blob(privateKeyEntry.encoding), onComplete, onError);
     //return consumerDb.addKeyPromise(keyName, new Blob(privateKeyEntry.encoding));
+    console.log("privateKeyEntry.encoding is");
+    console.log(Uint8ArrayToBase64(privateKeyEntry.encoding).length);
     return Promise.resolve(consumerDb.addKeyPromise(keyName, new Blob(privateKeyEntry.encoding)));
   })
-}
+}*/
 
 function onRegisterFailed(prefix) {
   console.log("Register failed for prefix: " + prefix);
@@ -219,7 +278,7 @@ function getUnencryptedData(catalogs) {
   }
   for (username in catalogs) {
     console.log(username);
-    var name = new Name(Config.defaultPrefix + username).append(new Name("data")).append(new Name(Config.dataPrefix));
+    var name = new Name(Config.defaultPrefix + username).append(new Name("SAMPLE")).append(new Name(Config.dataPrefix));
     for (catalog in catalogs[username]) {
       for (dataItem in catalogs[username][catalog].content) {
         var isoTimeString = catalogs[username][catalog].content[dataItem];
@@ -242,6 +301,7 @@ function getEncryptedData(catalogs) {
     for (catalog in catalogs[username]) {
       for (dataItem in catalogs[username][catalog].content) {
         var isoTimeString = catalogs[username][catalog].content[dataItem];
+        console.log(isoTimeString);
         nacConsumer.consume(new Name(name).append(isoTimeString), onConsumeComplete, onConsumeFailed);
         logString("<b>Interest</b>: " + (new Name(name).append(isoTimeString)).toUri() + " <br>");
       }
@@ -253,13 +313,31 @@ function onConsumeComplete(data, result) {
   insertToTree(data);
   console.log("Consumed fitness data: " + data.getName().toUri());
   var content = JSON.parse(result.buf().toString('binary'));
-  console.log("Fitness payload: " + JSON.stringify(content));
+//  console.log("Fitness payload: " + JSON.stringify(content));
 
-  var canvas = document.getElementById("plotCanvas");
-  var ctx = canvas.getContext("2d");
-  ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 1, 1);
+//  var canvas = document.getElementById("plotCanvas");
+//  var ctx = canvas.getContext("2d");
+//  ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 1, 1);
+  Config.path = []
+  for(var i = 0; i < content.length; i++) {
+    var obj = content[i];
+    Config.path.push(new google.maps.LatLng(obj.lat, obj.lng));
+    console.log(obj.lat)
+    console.log(obj.lng)
+  }
+  
+  // set google map
+//  Config.map.setZoom(17);
+  var flightPath = new google.maps.Polyline({
+                                            path: Config.path,
+                                            strokeColor: "#000000",
+                                            strokeOpacity: 0.8,
+                                            strokeWeight: 2
+                                            });
+  flightPath.setMap(Config.map);
 
   logString("<b>Data</b>: " + data.getName().toUri() + " <br>");
+  logString("Content:<br>" + result + " <br>");
   logString("<b style=\"color:green\">Consume successful</b><br>");
 }
 
@@ -268,6 +346,7 @@ function onConsumeFailed(code, message) {
   logString("<b style=\"color:red\">Consume failed:</b>" + code + " : " + message + "<br>");
 }
 
+/*
 function requestDataAccess(username) {
   if (certBase64String == "") {
     console.log("Cert not yet generated!");
@@ -293,13 +372,14 @@ function onAccessRequestData(interest, data) {
   insertToTree(data);
   console.log("access request data received: " + data.getName().toUri());
   logString("<b>Data</b>: " + data.getName().toUri() + " <br>");
+  logString("<b>Content</b>: " + data.getContent() + " <br>");
   logString("<b style=\"color:green\">Access granted</b><br>");
 }
 
 function onAccessRequestTimeout(interest) {
   console.log("access request " + interest.getName().toUri() + " times out!");
   logString("<b style=\"color:red\">Request timed out</b><br>");
-}
+}*/
 
 function formatTime(unixTimestamp) {
   var a = new Date(unixTimestamp);
@@ -414,7 +494,7 @@ function issueDPUInterest(username) {
   console.log(parameters);
   var name = new Name(DPUPrefix).append(parameters);
   // DistanceTo
-  //var name = new Name(Config.defaultPrefix).append(new Name(username)).append(new Name("data/fitness/physical_activity/genericfunctions/distanceTo/(100,100)/20160320T080030"));
+  // var name = new Name(Config.defaultPrefix).append(new Name(username)).append(new Name("data/fitness/physical_activity/genericfunctions/distanceTo/(100,100)/20160320T080030"));
   var interest = new Interest(name);
   interest.setMustBeFresh(true);
   interest.setInterestLifetimeMilliseconds(10000);
@@ -434,17 +514,46 @@ function onDPUData(interest, data) {
   var dpuObject = JSON.parse(content);
   console.log(dpuObject);
 
+  // set the lower canvas
   var canvas = document.getElementById("plotCanvas");
   var ctx = canvas.getContext("2d");
+  var centralPointLat = 100;
+  var centralPointLng = 300;
+  var averageLat = (dpuObject.minLat + dpuObject.maxLat) / 2;
+  var averageLng = (dpuObject.minLng + dpuObject.maxLng) / 2;
+  var magnitudeLat = 200 / (dpuObject.maxLat - dpuObject.minLat);
+  var magnitudeLng = 600 / (dpuObject.maxLng - dpuObject.minLng);
+  var magnitude = 0;
+  if (magnitudeLat > magnitudeLng) {
+    magnitude = magnitudeLng * 0.75;
+  } else {
+    magnitude = magnitudeLat * 0.75;
+  }
   ctx.beginPath();
-  ctx.moveTo(dpuObject.minLng, dpuObject.minLat);
-  ctx.lineTo(dpuObject.minLng, dpuObject.maxLat);
-  
-  ctx.lineTo(dpuObject.maxLng, dpuObject.maxLat);
-  ctx.lineTo(dpuObject.maxLng, dpuObject.minLat);
-  ctx.lineTo(dpuObject.minLng, dpuObject.minLat);
+  ctx.moveTo((dpuObject.minLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.minLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.minLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.maxLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.maxLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.maxLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.maxLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.minLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.minLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.minLat - averageLat) * magnitude + centralPointLat));
   ctx.strokeStyle = '#ff0000';
   ctx.stroke();
+  
+  outline = []
+  outline.push(new google.maps.LatLng(dpuObject.minLat, dpuObject.minLng));
+  outline.push(new google.maps.LatLng(dpuObject.maxLat, dpuObject.minLng));
+  outline.push(new google.maps.LatLng(dpuObject.maxLat, dpuObject.maxLng));
+  outline.push(new google.maps.LatLng(dpuObject.minLat, dpuObject.maxLng));
+  outline.push(new google.maps.LatLng(dpuObject.minLat, dpuObject.minLng));
+  // set google map
+  Config.map.setCenter({lat : (dpuObject.minLat + dpuObject.maxLat) / 2, lng : (dpuObject.minLng + dpuObject.maxLng) / 2});
+  Config.map.setZoom(17);
+  var flightPath = new google.maps.Polyline({
+                                            path: outline,
+                                            strokeColor: "#FF0000",
+                                            strokeOpacity: 0.8,
+                                            strokeWeight: 2
+                                            });
+  flightPath.setMap(Config.map);
 
   logString("<b>Interest</b>: " + interest.getName().toUri() + " <br>");
   logString("<b>Outer data</b>: " + data.getName().toUri() + " <br>");
