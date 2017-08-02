@@ -17,6 +17,7 @@ var Config = {
   wsPort: 9696,
   defaultUsername: "haitao",
   defaultPrefix: "/org/openmhealth/",
+  defaultTimestamp: "20170101T000000",
   catalogPrefix: "/SAMPLE/fitness/physical_activity/time_location/catalog",
   dataPrefix: "/fitness/physical_activity/time_location/",
   defaultInterestLifetime: 1000,
@@ -57,7 +58,9 @@ var dkeyCertName = undefined;*/
 
 // dkey info
 var dkeyName = new Name("/org/openmhealth/dvu/ksk-1501399960");
+//var dkeyName = new Name("/org/openmhealth/dvu/ksk-1501399124")
 var dkeyContentBase64 = "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC34kmcOpiHChelYhxwWicw930MC/HRABCw6mqrXr+xyJkwu5vrAQVXQe7/2wCCYFpELaoZyR1f15+Gln3AuprbBPWQ0OpiudboVdaLlBKywP+Zn41joGJygnPJBvrll6rKlbKCvjxOTEiB8M1RW8c7YiCqD6jAJ/ZwG8FKz4mvqPpTrDf2LMMJiwGrPl5GkObv+7eAs7FsX00o28Bl4NIrzxqAxsju2cVG+V6W2dXskryquI529b7EfYVWE1j1IOQjOMTVeGyFgjkVCnF9Wkc2Vzox6Sdsu3xIKn6H9KvzdyP6aoxutFsPDoG2QBjN4vNNXgvMILUGwE+4U/p4fWPhAgMBAAECggEAG3gEQwBF1LZfPedgFDCDdj8iQPBv2SbHV4ZNFPh8blRm/e6opfxrDdPdnf7bHp7CHTktFdkDOFP/kp1cf7PgeiNNg6qRuNnGDsLz37no6ScHh61b86v7yNtP7JHMXQvBCa4/EmTUoWWn1zFfmm25X1eTRZQ9Qyc1Gx4qS8Cg8spsUSbJj2Huoj2qio9zselcofnSDr0GXOV6eqHtHjYbXuE7BL1HIDOumBvJI18DlOyRCHwwR+gEr960FaBLjOZJm7bUnBFhpX0Vy5n0w/vjcrtsbAlF8KD/5+e4thGvstuzs2XvLnHwz8Gd1bVJAsU/9hdR23VJVqEeVeXUKQy5eQKBgQDoWcB1a4oOXGzE5ZGAdC9HEZ/r5SlUPrDYKPpsMjmHHv7O7B6EehfdwFvk7YSyOFQBpIk3X1YWEYNL8Y3/2uzt2VO2VArGDdBRB4WzncYMCuNuPSz/NtsYPaTCqTqaBbKsxu3bOXUVuYzyTDAh9n40x7Gr87hSNaZlsfgQMUXrHwKBgQDKmanLD8zblOVryEpUc26vUFtgRuTCReZT8bJfIOYP3/pzRp7bdGwqrqppoMBuOxDrHG6Z3+sOvGg1aMym8XeEpPyifHXQ9pqMQFvjHH1Je7UWSTRkMvm90EWZnsFzPdoM2ZiNUkuvWbsmuxhq8St1X8ahJUGctpL1m8VY0FHQ/wKBgE82ohWmBxgkTHTIK1XWxnN9P79FjlSJVvMq7U1Lxi8Z0xcqirDxiwdv2CRxEYdNCt7QgHNfTlMRv2h5vsaWlaX1LMQBXPbuqLGnVd7JkEZ0w9rGgnuz8PgPtAcleLQf8y1SWK8fpJo2eyXz8Yjyp05JMnqECbgFUGhlR0QF+GdTAoGAB9ClnA+f91hnASFYvKk3O8v9ulkBufy4RcSs/L5oIXSiVJAE0LJM+diC+lAZHCdrH6aZHZZlmsvpuSWxvz7RPWyf0iS65rScgYx5/ui6bHs5IQLx4muU9p1yEdrt22QnZRd/qvPht4Helj/hUT68TmrDXrPxM/pW8OJxWluuzEECgYBrRXHmz68p590Sl7Q8jWob5qzMS1Z9jmIpkEzM7T8T4zsfoI1FK4DGcCSTpzAGSuP5PVGZq1g3A4665WnV5rGXT6A80JD902SDBPDpS0LDuoWcD8iwAHo9msMzHzkcjbGiYrP9NGia9Vem0EvTfYzLGg7cbyXx76ulGwDahGQfug==";
+//var dkeyContentBase64 = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDKtXmocYDMvqZqGXWiU0j1QazUl1Blbl4qZVzWWB3DnZUwtzmdn9kTaiqExam9hWKWvTua6gpxtIABxMgsrg7258SW2/wji9abHhbd4QJmxXr11P5nwguiWZgrciWHmpYSk5D8e6iT8ORQagMJkVCqwoOgE5VCX1VcXN+juN2+SE93EVdUMqebyKvXQWBySKSwwwjX3xrS0p+9yPyTcAIyUy6KQ/DE6/uG+4WSQhsEX9bDsqr9RvmSyz1qev1ksFqjSQvwcmlObduY/WWPJOY8OvKGtxhiB3iSsUChKR9UW9QNGkXmX68d+6BwhMoHGaSOyTj3AOP+b0ZQB+zWHKiRAgMBAAECggEANkrOz9e+qJfzmH1DLXvjEZVKhhIU/WXHINHPQLWPG0KMn+SjMN2MVY/c3XzXjqQ4GKmMWlyO+Y9frZmYB6eC6IyA8ervqFGe5CL1+u12KDKCUW9/yCiH1y7p+9DxzlUQFt+hOI6iQyWE8SjDsX9TPLkmaex00LcZ9MgHOiGceocHKsf7w1gy/SQwpl5pn77vEwOrsQJM93gPC8/FvUh9c9H5ZxcCB/AKwVOLsMhDspvIf3mThPaez70kLbBdaE6AgFjPSEhreWeJKwdhVynXcrVXAWwD1S5L99Hgommg5IAnK1Ma6/4TUzdtUECKmV4Z7JcnDDRZgk0FNdN8zq0FZQKBgQD1h/GdCcL6XDnzj3SZPaKZNE7JzDtzOe9NMejF9Ir98F/KpF5bw2nxdylqVC+r7lLN4hcDHLAPCxl20jT46uOplHIHqHEG4TGE0+ubHKsOO+ocYTdT00iYXsoS/fG8D5EdbPxKLq+Fl3GssNyA5+xJDuXPYmow6EqxmJ/IYIM/bwKBgQDTWhznrDIvHg31C6cmhuk84l+kjr0TXV5gzBf2JGlUhpBqz2MX+YAEPLx9+V2UkeUHM0eTp8u6wsqG1ZQSYSc8AXnfHm37xQidQzdxPbT5flt1R8WqyLs2gvPnYVlwGeJFohT+5T/1s/GYg2lMOsZ10HdNtFVHMjmIAEZey2qX/wKBgQDZhNIcWaWOv13n1NNrXxtJtvmF9ZVFg7HpJaoelYL9bZKvp+agTQLylKrwNBz3qG9bTk0syKGA8khg5+FeFFoUxhovhp57hc2k60nzZPZ16caB1e56KNhLhM5o/OjHvtLEyuTHo4yEQaLHZvgyi0TdhIE7tOh245Qouhn0HuynqQKBgE+beJm2nWxr6JvtGLeFR2LcbWQBM6yQlZTmKvxWeKoSyWDB3rRQEO0Hp4PXomzsixSsNwChyjX9WuVwmwZVO775W1s0Df8wFu+NOtvXf0weUPqa3xRV6VY9+vqjC1oTFcxeoYPk+7NjZNOqY8YHuWr064sEKr7XZx4X5GmeOvcnAoGBAJ43MZRP3lKLFzIpq0//sRcKe8ehGwpBBDeGovdVU9UpRusoIW6Z+0fMq/gbxE78GSquSblylKg8AD4gxgkhlNZMDf+SdQ/CTpZ/mTzN5sc9i29N2K0pORro2g9pP6owb/9IXiVxMzfVE9AhA3j5k5hXkugHNb8Fgr9LWckszBK0";
 
 // Setting up keyChain
 var identityStorage = new IndexedDbIdentityStorage();
@@ -76,12 +79,12 @@ var memoryContentCache = new MemoryContentCache(face);
 var certificateName = undefined;
 
 // For now, hard-coded group name
-var groupName = new Name("/org/openmhealth/haitao");
+var groupName = new Name("/org/openmhealth");
 indexedDB.deleteDatabase("consumer-db");
 var consumerDb = new IndexedDbConsumerDb("consumer-db");
 //var DPUPrefix = "/ndn/edu/basel/dpu/bounding_box";
 var DPUPrefix = "/org/openmhealth/dpu/bounding_box";
-var DSULink = "/ndn/edu/ucla/remap";
+var DSULink = "/org/openmhealth/dsu";
 var nacConsumer = new Consumer(face, keyChain, groupName, new Name("/org/openmhealth/dvu"), consumerDb);
 
 function init() {
@@ -215,6 +218,19 @@ var onCatalogData = function(interest, data) {
   recordCatalogData(interest, data);
 };
 
+var onCatalogDataOnlyOnce = function(interest, data) {
+  insertToTree(data);
+  logString("<b>Data</b>:<br>" + data.getName().toUri() + "<br>" + data.getContent().toString() + "<br><br>");
+  recordCatalogData(interest, data);
+  catalogProbeFinished = true;
+  if (catalogProbeFinishedCallback != null) {
+    console.log("Continue to fetch data now");
+    catalogProbeFinishedCallback(userCatalogs);
+  } else {
+    console.log("Catalog probe finished, callback unspecified");
+  }
+}
+
 var recordCatalogData = function(interest, data) {
   console.log("Got catalog: " + data.getName().toUri());
   insertToTree(data);
@@ -254,6 +270,17 @@ var onCatalogTimeout = function(interest) {
   }
 };
 
+var onCatalogTimeoutOnlyOnce = function(interest) {
+  console.log("Time out for catalog interest " + interest.getName().toUri());
+  catalogTimeoutCnt += 1;
+  if (catalogTimeoutCnt < Config.catalogTimeoutThreshold) {
+    face.expressInterest(interest, onCatalogDataOnlyOnce, onCatalogTimeoutOnlyOnce);
+  } else {
+    console.log("No longer looking for the catalog.");
+    logString("<b>Data</b>:<br> data doesn't exist<br><br>");
+  }
+};
+
 // given a userPrefix, populates userCatalogs[username] with all of its catalogs
 function getCatalogs(username) {
   if (username == undefined) {
@@ -268,6 +295,24 @@ function getCatalogs(username) {
 
   console.log("Express name " + name.toUri());
   face.expressInterest(interest, onCatalogData, onCatalogTimeout);
+  logString("<b>Interest</b>:<br>" + interest.getName().toUri() + "<br>");
+};
+
+function getOneCatalog(username, timestamp) {
+  if (username == undefined) {
+    username = Config.defaultUsername;
+  }
+  if (timestamp == undefined) {
+    timestamp = Config.defaultTimestamp
+  }
+  var name = new Name(Config.defaultPrefix).append(new Name(username)).append(new Name(Config.catalogPrefix)).append(new Name(timestamp));
+  var interest = new Interest(name);
+  interest.setInterestLifetimeMilliseconds(Config.defaultInterestLifetime);
+  // start from leftmost child
+  interest.setMustBeFresh(true);
+  
+  console.log("Express name " + name.toUri());
+  face.expressInterest(interest, onCatalogDataOnlyOnce, onCatalogTimeout);
   logString("<b>Interest</b>:<br>" + interest.getName().toUri() + "<br>");
 };
 
