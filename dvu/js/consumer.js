@@ -15,9 +15,10 @@ var Exclude = require('ndn-js').Exclude;
 var Config = {
 	hostName: "localhost",
   wsPort: 9696,
-  defaultUsername: "zhehao",
+  defaultUsername: "haitao",
   defaultPrefix: "/org/openmhealth/",
-  catalogPrefix: "/data/fitness/physical_activity/time_location/catalog/",
+  defaultTimestamp: "20170101T000000",
+  catalogPrefix: "/SAMPLE/fitness/physical_activity/time_location/catalog",
   dataPrefix: "/fitness/physical_activity/time_location/",
   defaultInterestLifetime: 1000,
 
@@ -41,6 +42,23 @@ var catalogProbeFinished = false;
 
 var catalogProbeFinishedCallback = null;
 
+// decreption key info, TODO: this should be gotten from the server later
+/*
+var identityStorageForDkey = new BasicIdentityStorage();
+var privateKeyStorageForDkey = new FilePrivateKeyStorage();
+var policyManagerForDkey = new NoVerifyPolicyManager();
+
+var keyChainForDkey = new KeyChain(new IdentityManager(identityStorageForDkey, privateKeyStorageForDkey),
+                                   policyManagerForDkey);
+keyChainForDkey.setFace(face);
+var dvuIdentityName = new Name("/ndn/edu/ucla/dvu");
+var dkeyName = undefined;
+var dkeyContent = undefined;
+var dkeyCertName = undefined;*/
+
+// dkey info
+var dkeyName = new Name("/org/openmhealth/dvu/ksk-1501399124");
+var dkeyContentBase64 = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDKtXmocYDMvqZqGXWiU0j1QazUl1Blbl4qZVzWWB3DnZUwtzmdn9kTaiqExam9hWKWvTua6gpxtIABxMgsrg7258SW2/wji9abHhbd4QJmxXr11P5nwguiWZgrciWHmpYSk5D8e6iT8ORQagMJkVCqwoOgE5VCX1VcXN+juN2+SE93EVdUMqebyKvXQWBySKSwwwjX3xrS0p+9yPyTcAIyUy6KQ/DE6/uG+4WSQhsEX9bDsqr9RvmSyz1qev1ksFqjSQvwcmlObduY/WWPJOY8OvKGtxhiB3iSsUChKR9UW9QNGkXmX68d+6BwhMoHGaSOyTj3AOP+b0ZQB+zWHKiRAgMBAAECggEANkrOz9e+qJfzmH1DLXvjEZVKhhIU/WXHINHPQLWPG0KMn+SjMN2MVY/c3XzXjqQ4GKmMWlyO+Y9frZmYB6eC6IyA8ervqFGe5CL1+u12KDKCUW9/yCiH1y7p+9DxzlUQFt+hOI6iQyWE8SjDsX9TPLkmaex00LcZ9MgHOiGceocHKsf7w1gy/SQwpl5pn77vEwOrsQJM93gPC8/FvUh9c9H5ZxcCB/AKwVOLsMhDspvIf3mThPaez70kLbBdaE6AgFjPSEhreWeJKwdhVynXcrVXAWwD1S5L99Hgommg5IAnK1Ma6/4TUzdtUECKmV4Z7JcnDDRZgk0FNdN8zq0FZQKBgQD1h/GdCcL6XDnzj3SZPaKZNE7JzDtzOe9NMejF9Ir98F/KpF5bw2nxdylqVC+r7lLN4hcDHLAPCxl20jT46uOplHIHqHEG4TGE0+ubHKsOO+ocYTdT00iYXsoS/fG8D5EdbPxKLq+Fl3GssNyA5+xJDuXPYmow6EqxmJ/IYIM/bwKBgQDTWhznrDIvHg31C6cmhuk84l+kjr0TXV5gzBf2JGlUhpBqz2MX+YAEPLx9+V2UkeUHM0eTp8u6wsqG1ZQSYSc8AXnfHm37xQidQzdxPbT5flt1R8WqyLs2gvPnYVlwGeJFohT+5T/1s/GYg2lMOsZ10HdNtFVHMjmIAEZey2qX/wKBgQDZhNIcWaWOv13n1NNrXxtJtvmF9ZVFg7HpJaoelYL9bZKvp+agTQLylKrwNBz3qG9bTk0syKGA8khg5+FeFFoUxhovhp57hc2k60nzZPZ16caB1e56KNhLhM5o/OjHvtLEyuTHo4yEQaLHZvgyi0TdhIE7tOh245Qouhn0HuynqQKBgE+beJm2nWxr6JvtGLeFR2LcbWQBM6yQlZTmKvxWeKoSyWDB3rRQEO0Hp4PXomzsixSsNwChyjX9WuVwmwZVO775W1s0Df8wFu+NOtvXf0weUPqa3xRV6VY9+vqjC1oTFcxeoYPk+7NjZNOqY8YHuWr064sEKr7XZx4X5GmeOvcnAoGBAJ43MZRP3lKLFzIpq0//sRcKe8ehGwpBBDeGovdVU9UpRusoIW6Z+0fMq/gbxE78GSquSblylKg8AD4gxgkhlNZMDf+SdQ/CTpZ/mTzN5sc9i29N2K0pORro2g9pP6owb/9IXiVxMzfVE9AhA3j5k5hXkugHNb8Fgr9LWckszBK0";
 // Setting up keyChain
 var identityStorage = new IndexedDbIdentityStorage();
 var privateKeyStorage = new IndexedDbPrivateKeyStorage();
@@ -58,12 +76,13 @@ var memoryContentCache = new MemoryContentCache(face);
 var certificateName = undefined;
 
 // For now, hard-coded group name
-var groupName = new Name("/org/openmhealth/zhehao");
+var groupName = new Name("/org/openmhealth");
 indexedDB.deleteDatabase("consumer-db");
 var consumerDb = new IndexedDbConsumerDb("consumer-db");
-var DPUPrefix = "/ndn/edu/basel/dpu/bounding_box";
-var DSULink = "/ndn/edu/ucla/remap";
-var nacConsumer = new Consumer(face, keyChain, groupName, consumerIdentityName, consumerDb);
+//var DPUPrefix = "/ndn/edu/basel/dpu/bounding_box";
+var DPUPrefix = "/org/openmhealth/dpu/bounding_box";
+var DSULink = "/org/openmhealth/dsu";
+var nacConsumer = new Consumer(face, keyChain, groupName, new Name("/org/openmhealth/dvu"), consumerDb);
 
 function init() {
   document.getElementById("identity").value = consumerIdentityName.toUri();
@@ -78,9 +97,28 @@ function init() {
   collapseAll.onclick = function () { treeView.collapseAll(); };
 }
 
+// This part is temporary. Later, the logic will be revised to :
+// the running instance gets dkey name and its content from web server, and simply inters it into
+// consumer DB
+/*
+this.keyChainForDkey.createIdentityAndCertificate(dvuIdentityName, function(dvuCertName) {
+  console.log("dvuCertName: " + dvuCertName.toUri());
+  dkeyCertName = dvuCertName;
+  memoryContentCache.registerPrefix(dvuIdentityName, onRegisterFailed, onDataNotFound);
+  keyChainForDkey.getIdentityManager().identityStorage.getCertificatePromise(dvuCertName, false)
+    then(function(certificate) {
+      certBase64String = certificate.wireEncode().buf().toString('base64');
+      memoryContentCache.add(certificate);
+      console.log("added my certificate to memoryContentCache: " + certificate.getName().toUri())
+    });
+  dkeyName = IdentityCertificate.certificateNameToPublicKeyName(dvuCertName);
+  getPrivateKeyAndInsertPromise(privateKeyStorageForDkey, dkeyName, consumerDb);
+});*/
+
 this.keyChain.createIdentityAndCertificate(consumerIdentityName, function(myCertificateName) {
   console.log("myCertificateName: " + myCertificateName.toUri());
   certificateName = myCertificateName;
+                                           
 
   face.setCommandSigningInfo(keyChain, myCertificateName);
   memoryContentCache.registerPrefix(consumerIdentityName, onRegisterFailed, onDataNotFound);
@@ -88,16 +126,35 @@ this.keyChain.createIdentityAndCertificate(consumerIdentityName, function(myCert
   keyChain.getIdentityManager().identityStorage.getCertificatePromise(myCertificateName, false).then(function(certificate) {
     certBase64String = certificate.wireEncode().buf().toString('base64');
     memoryContentCache.add(certificate);
-    console.log("added my certificate to db: " + certificate.getName().toUri())
+    console.log("added my certificate to memoryContentCache: " + certificate.getName().toUri())
   });
   
   // Make sure we can decrypt the encrypted D-key
-  getPrivateKeyAndInsertPromise(privateKeyStorage, IdentityCertificate.certificateNameToPublicKeyName(myCertificateName), consumerDb);
+  // This key is used locally
+  // getPrivateKeyAndInsertPromise(privateKeyStorage, IdentityCertificate.certificateNameToPublicKeyName(myCertificateName), consumerDb);
+  Promise.resolve(consumerDb.addKeyPromise(dkeyName, new Blob(new Buffer(dkeyContentBase64, 'base64'), false)));
 }, function (error) {
   console.log("Error in createIdentityAndCertificate: " + error);
 });
 
+function base64ToUint8Array(base64) {
+  var raw = atob(base64);
+  var rawLength = raw.length;
+  console.log(rawLength);
+  var array = new Uint8Array(new ArrayBuffer(rawLength));
+  
+  for(var i = 0; i < rawLength; i++) {
+    array[i] = raw.charCodeAt(i);
+  }
+  return array;
+}
+
+function Uint8ArrayToBase64(uint8Array) {
+  return btoa(String.fromCharCode.apply(null, uint8Array));
+}
+
 // Hack for get private key promise...
+/*
 function getPrivateKeyAndInsertPromise(privateKeyDb, keyName, consumerDb) {
   return privateKeyDb.database.privateKey.get
     (IndexedDbPrivateKeyStorage.transformName(keyName))
@@ -112,9 +169,11 @@ function getPrivateKeyAndInsertPromise(privateKeyDb, keyName, consumerDb) {
     }
     //consumer.addDecryptionKey(keyName, new Blob(privateKeyEntry.encoding), onComplete, onError);
     //return consumerDb.addKeyPromise(keyName, new Blob(privateKeyEntry.encoding));
+    console.log("privateKeyEntry.encoding is");
+    console.log(Uint8ArrayToBase64(privateKeyEntry.encoding).length);
     return Promise.resolve(consumerDb.addKeyPromise(keyName, new Blob(privateKeyEntry.encoding)));
   })
-}
+}*/
 
 function onRegisterFailed(prefix) {
   console.log("Register failed for prefix: " + prefix);
@@ -156,6 +215,19 @@ var onCatalogData = function(interest, data) {
   recordCatalogData(interest, data);
 };
 
+var onCatalogDataOnlyOnce = function(interest, data) {
+  insertToTree(data);
+  logString("<b>Data</b>:<br>" + data.getName().toUri() + "<br>" + data.getContent().toString() + "<br><br>");
+  recordCatalogData(interest, data);
+  catalogProbeFinished = true;
+  if (catalogProbeFinishedCallback != null) {
+    console.log("Continue to fetch data now");
+    catalogProbeFinishedCallback(userCatalogs);
+  } else {
+    console.log("Catalog probe finished, callback unspecified");
+  }
+}
+
 var recordCatalogData = function(interest, data) {
   console.log("Got catalog: " + data.getName().toUri());
   insertToTree(data);
@@ -195,6 +267,17 @@ var onCatalogTimeout = function(interest) {
   }
 };
 
+var onCatalogTimeoutOnlyOnce = function(interest) {
+  console.log("Time out for catalog interest " + interest.getName().toUri());
+  catalogTimeoutCnt += 1;
+  if (catalogTimeoutCnt < Config.catalogTimeoutThreshold) {
+    face.expressInterest(interest, onCatalogDataOnlyOnce, onCatalogTimeoutOnlyOnce);
+  } else {
+    console.log("No longer looking for the catalog.");
+    logString("<b>Data</b>:<br> data doesn't exist<br><br>");
+  }
+};
+
 // given a userPrefix, populates userCatalogs[username] with all of its catalogs
 function getCatalogs(username) {
   if (username == undefined) {
@@ -212,6 +295,24 @@ function getCatalogs(username) {
   logString("<b>Interest</b>:<br>" + interest.getName().toUri() + "<br>");
 };
 
+function getOneCatalog(username, timestamp) {
+  if (username == undefined) {
+    username = Config.defaultUsername;
+  }
+  if (timestamp == undefined) {
+    timestamp = Config.defaultTimestamp
+  }
+  var name = new Name(Config.defaultPrefix).append(new Name(username)).append(new Name(Config.catalogPrefix)).append(new Name(timestamp));
+  var interest = new Interest(name);
+  interest.setInterestLifetimeMilliseconds(Config.defaultInterestLifetime);
+  // start from leftmost child
+  interest.setMustBeFresh(true);
+  
+  console.log("Express name " + name.toUri());
+  face.expressInterest(interest, onCatalogDataOnlyOnce, onCatalogTimeout);
+  logString("<b>Interest</b>:<br>" + interest.getName().toUri() + "<br>");
+};
+
 // For unencrypted data
 function getUnencryptedData(catalogs) {
   if (!catalogProbeFinished) {
@@ -219,7 +320,7 @@ function getUnencryptedData(catalogs) {
   }
   for (username in catalogs) {
     console.log(username);
-    var name = new Name(Config.defaultPrefix + username).append(new Name("data")).append(new Name(Config.dataPrefix));
+    var name = new Name(Config.defaultPrefix + username).append(new Name("SAMPLE")).append(new Name(Config.dataPrefix));
     for (catalog in catalogs[username]) {
       for (dataItem in catalogs[username][catalog].content) {
         var isoTimeString = catalogs[username][catalog].content[dataItem];
@@ -242,6 +343,7 @@ function getEncryptedData(catalogs) {
     for (catalog in catalogs[username]) {
       for (dataItem in catalogs[username][catalog].content) {
         var isoTimeString = catalogs[username][catalog].content[dataItem];
+        console.log(isoTimeString);
         nacConsumer.consume(new Name(name).append(isoTimeString), onConsumeComplete, onConsumeFailed);
         logString("<b>Interest</b>: " + (new Name(name).append(isoTimeString)).toUri() + " <br>");
       }
@@ -253,13 +355,31 @@ function onConsumeComplete(data, result) {
   insertToTree(data);
   console.log("Consumed fitness data: " + data.getName().toUri());
   var content = JSON.parse(result.buf().toString('binary'));
-  console.log("Fitness payload: " + JSON.stringify(content));
+//  console.log("Fitness payload: " + JSON.stringify(content));
 
-  var canvas = document.getElementById("plotCanvas");
-  var ctx = canvas.getContext("2d");
-  ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 1, 1);
+//  var canvas = document.getElementById("plotCanvas");
+//  var ctx = canvas.getContext("2d");
+//  ctx.fillRect(content.lat * Config.lngTimes, (content.lng + Config.lngOffset) * Config.lngTimes, 1, 1);
+  Config.path = []
+  for(var i = 0; i < content.length; i++) {
+    var obj = content[i];
+    Config.path.push(new google.maps.LatLng(obj.lat, obj.lng));
+    console.log(obj.lat)
+    console.log(obj.lng)
+  }
+  
+  // set google map
+//  Config.map.setZoom(17);
+  var flightPath = new google.maps.Polyline({
+                                            path: Config.path,
+                                            strokeColor: "#000000",
+                                            strokeOpacity: 0.8,
+                                            strokeWeight: 2
+                                            });
+  flightPath.setMap(Config.map);
 
   logString("<b>Data</b>: " + data.getName().toUri() + " <br>");
+  logString("Content:<br>" + result + " <br>");
   logString("<b style=\"color:green\">Consume successful</b><br>");
 }
 
@@ -268,6 +388,7 @@ function onConsumeFailed(code, message) {
   logString("<b style=\"color:red\">Consume failed:</b>" + code + " : " + message + "<br>");
 }
 
+/*
 function requestDataAccess(username) {
   if (certBase64String == "") {
     console.log("Cert not yet generated!");
@@ -293,13 +414,14 @@ function onAccessRequestData(interest, data) {
   insertToTree(data);
   console.log("access request data received: " + data.getName().toUri());
   logString("<b>Data</b>: " + data.getName().toUri() + " <br>");
+  logString("<b>Content</b>: " + data.getContent() + " <br>");
   logString("<b style=\"color:green\">Access granted</b><br>");
 }
 
 function onAccessRequestTimeout(interest) {
   console.log("access request " + interest.getName().toUri() + " times out!");
   logString("<b style=\"color:red\">Request timed out</b><br>");
-}
+}*/
 
 function formatTime(unixTimestamp) {
   var a = new Date(unixTimestamp);
@@ -414,7 +536,7 @@ function issueDPUInterest(username) {
   console.log(parameters);
   var name = new Name(DPUPrefix).append(parameters);
   // DistanceTo
-  //var name = new Name(Config.defaultPrefix).append(new Name(username)).append(new Name("data/fitness/physical_activity/genericfunctions/distanceTo/(100,100)/20160320T080030"));
+  // var name = new Name(Config.defaultPrefix).append(new Name(username)).append(new Name("data/fitness/physical_activity/genericfunctions/distanceTo/(100,100)/20160320T080030"));
   var interest = new Interest(name);
   interest.setMustBeFresh(true);
   interest.setInterestLifetimeMilliseconds(10000);
@@ -434,17 +556,46 @@ function onDPUData(interest, data) {
   var dpuObject = JSON.parse(content);
   console.log(dpuObject);
 
+  // set the lower canvas
   var canvas = document.getElementById("plotCanvas");
   var ctx = canvas.getContext("2d");
+  var centralPointLat = 100;
+  var centralPointLng = 300;
+  var averageLat = (dpuObject.minLat + dpuObject.maxLat) / 2;
+  var averageLng = (dpuObject.minLng + dpuObject.maxLng) / 2;
+  var magnitudeLat = 200 / (dpuObject.maxLat - dpuObject.minLat);
+  var magnitudeLng = 600 / (dpuObject.maxLng - dpuObject.minLng);
+  var magnitude = 0;
+  if (magnitudeLat > magnitudeLng) {
+    magnitude = magnitudeLng * 0.75;
+  } else {
+    magnitude = magnitudeLat * 0.75;
+  }
   ctx.beginPath();
-  ctx.moveTo(dpuObject.minLng, dpuObject.minLat);
-  ctx.lineTo(dpuObject.minLng, dpuObject.maxLat);
-  
-  ctx.lineTo(dpuObject.maxLng, dpuObject.maxLat);
-  ctx.lineTo(dpuObject.maxLng, dpuObject.minLat);
-  ctx.lineTo(dpuObject.minLng, dpuObject.minLat);
+  ctx.moveTo((dpuObject.minLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.minLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.minLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.maxLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.maxLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.maxLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.maxLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.minLat - averageLat) * magnitude + centralPointLat));
+  ctx.lineTo((dpuObject.minLng - averageLng) * magnitude + centralPointLng, 200 - ((dpuObject.minLat - averageLat) * magnitude + centralPointLat));
   ctx.strokeStyle = '#ff0000';
   ctx.stroke();
+  
+  outline = []
+  outline.push(new google.maps.LatLng(dpuObject.minLat, dpuObject.minLng));
+  outline.push(new google.maps.LatLng(dpuObject.maxLat, dpuObject.minLng));
+  outline.push(new google.maps.LatLng(dpuObject.maxLat, dpuObject.maxLng));
+  outline.push(new google.maps.LatLng(dpuObject.minLat, dpuObject.maxLng));
+  outline.push(new google.maps.LatLng(dpuObject.minLat, dpuObject.minLng));
+  // set google map
+  Config.map.setCenter({lat : (dpuObject.minLat + dpuObject.maxLat) / 2, lng : (dpuObject.minLng + dpuObject.maxLng) / 2});
+  Config.map.setZoom(17);
+  var flightPath = new google.maps.Polyline({
+                                            path: outline,
+                                            strokeColor: "#FF0000",
+                                            strokeOpacity: 0.8,
+                                            strokeWeight: 2
+                                            });
+  flightPath.setMap(Config.map);
 
   logString("<b>Interest</b>: " + interest.getName().toUri() + " <br>");
   logString("<b>Outer data</b>: " + data.getName().toUri() + " <br>");
